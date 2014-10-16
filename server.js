@@ -668,6 +668,9 @@ app.use(patchRoute);
 MongoClient.connect(
     OPTIONS.MONGOURL,
     function(error, database){
+        if(error){
+            throw new Error(error);
+        }
         db = database;
         LOG("Database Connected:", OPTIONS.MONGOHOST + "/" + OPTIONS.MONGOBASE);
         app.server = app.listen(OPTIONS.PORT);
