@@ -1,0 +1,80 @@
+{
+  "name": "HTTP Store",
+  "description": "HTTP Key-Value Store",
+  "keywords": [
+    "http",
+    "key",
+    "value",
+    "store",
+    "queue",
+    "data"
+  ],
+  "repository": "https://github.com/johnhenry/http-store",
+  "env": {
+    "CHARSET": {
+        "description": "Default encoding for stored objects.",
+        "value" : "utf-8",
+        "required" : false
+    },
+    "BODYLIMIT": {
+        "description": "Limit of body to read",
+        "value" : "1mb",
+        "required" : false
+    },
+    "DEQUEUEINTERVAL": {
+        "description": "Dequeue interval for connected sockets.",
+        "value" : "10000",
+        "required" : false
+    },
+    "POPINTERVAL": {
+        "description": "Pop interval for connected sockets",
+        "value" : "10000",
+        "required" : false
+    },
+    "BASETYPE": {
+        "description": "Default type assigned to stored objects.",
+        "value" : "text/plain",
+        "required" : false
+    },
+    "UNSAFEGET": {
+        "description": "Enables removal of items through GET get method by appending /"?dequeue=true/" to url if set.",
+        "value" : "",
+        "required" : false
+    },
+    "MONGOPROTOCOL": {
+        "description": "Protocol for connecting to mongo host.",
+        "value" : "mongodb",
+        "required" : false
+    },
+    "MONGOHOST": {
+        "description": "MongoDB database host.",
+        "value" : "",
+        "required" : false
+    },
+    "MONGOBASE": {
+        "description": "MongoDB database name.",
+        "value" : "",
+        "required" : false
+    },
+    "MONGOUSER": {
+        "description": "MongoDB database user name.",
+        "value" : "",
+        "required" : false
+    },
+    "MONGOPASS": {
+        "description": "MongoDB database password.",
+        "value" : "",
+        "required" : false
+    },
+    "MONGOPORT": {
+        "description": "MongoDB connection port.",
+        "value" : "27017",
+        "required" : false
+    },
+    "MONGOFULL": {
+        "description": "MongoDB database full URL. Overwrites all other MongoDB related fields if set.",
+        "value" : "",
+        "required" : false
+    }
+  }
+}
