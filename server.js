@@ -672,7 +672,7 @@ MongoClient.connect(
             throw new Error(error);
         }
         db = database;
-        LOG("Database Connected:", OPTIONS.MONGOHOST + "/" + OPTIONS.MONGOBASE);
+        LOG("Database Connected:");
         app.server = app.listen(OPTIONS.PORT);
         LOG("Application Listening:", OPTIONS.PORT);
         wss = new WS({server: app.server});
