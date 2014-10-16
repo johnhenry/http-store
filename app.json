@@ -37,7 +37,7 @@
         "required" : false
     },
     "UNSAFEGET": {
-        "description": "Enables removal of items through GET get method by appending /"?dequeue=true/" to url if set.",
+        "description": "Enables removal of items through GET get method by appending '?dequeue=true' to url if set.",
         "value" : "",
         "required" : false
     },
