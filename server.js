@@ -107,6 +107,7 @@ var setOptions = function(opts, first){
 ////
 var MongoClient = mongodb.MongoClient;
 var ObjectID = mongodb.ObjectID;
+var Binary = mongodb.Binary;
 var wss;
 var db;
 var app = koa();
@@ -399,10 +400,12 @@ var render = function(self, obj, status){
         if(obj.type) self.set("Content-Type", obj.type);
         if(obj.value) self.response.body = obj.value;
         self.response.status = status || 200;//Resource Created
+        console.log("RENDER", obj);
     }catch(e){
         self.response.body = e;
         self.set("Content-Type", "text/plain");
         self.response.status = 404;//Resource Created
+        console.log("RENDER", obj);
     }
 }
 var render2 = function(response, obj, status){
@@ -436,7 +439,7 @@ var rawBody = function* (next){
     this.raw = yield getRawBody(this.req, {
         length: this.length,
         limit: OPTIONS.BODYLIMIT || undefined,
-        encoding: this.encoding
+        encoding: this.encoding !== "binary" ? this.encoding : null
     })
     yield next;
 }
@@ -485,6 +488,9 @@ var getRoute = router.get("/:collectionName/:key",
                 yield removeOnePromise(collection, result._id);
                 LOG("DELETE", result._id);
             }
+            if(result.value && result.value.buffer){
+                result.value = result.value.buffer;
+            }
             obj.value = result.value;
             obj._id = result._id;
             obj.type = result.type;
@@ -513,7 +519,6 @@ var headRoute = router.head("/:collectionName/:key",
         if(result && result[0]){
             result = result[0];
             LOG("GET", result);
-            obj.value = result.value;
             obj._id = result._id;
             obj.type = result.type;
             obj.time = result.time;
@@ -528,6 +533,7 @@ var traceRoute = router.trace("/:collectionName/:key",
     function* (collectionName, key){
         var obj = {
             time : Number(Date.now()),
+            value : this.encoding === "binary" ? Binary(this.raw) : this.raw,
             type : this.request.headers["content-type"]
         };
         render(this, obj, 200);
@@ -560,6 +566,9 @@ var deleteRoute = router.delete("/:collectionName/:key",
                 LOG("GET", result);
                 yield removeOnePromise(collection, result._id);
                 LOG("DELETE", result._id);
+                if(result.value && result.value.buffer){
+                    result.value = result.value.buffer;
+                }
                 obj.value = result.value;
                 obj._id = result._id;
                 obj.type = result.type || obj.type;
@@ -580,7 +589,7 @@ var putRoute = router.put("/:collectionName/:key",
         var collection = db.collection(collectionName);
         var obj = {
             key : key,
-            value : this.raw,
+            value : this.encoding === "binary" ? Binary(this.raw) : this.raw,
             time : Number(Date.now()),
             type : this.request.headers["content-type"]
         }
@@ -609,7 +618,7 @@ var postRoute = router.post("/:collectionName/:key",
         var collection = db.collection(collectionName);
         var obj = {
             key : key,
-            value : this.raw,
+            value : this.encoding === "binary" ? Binary(this.raw) : this.raw,
             time : Number(Date.now()),
             type : this.request.headers["content-type"]
         }
