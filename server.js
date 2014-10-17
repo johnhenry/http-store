@@ -49,8 +49,6 @@ var OPTIONS = {
     UNSAFEGET : argv.unsafeget || !!process.env.UNSAFEGET || false,
     CAPTUREHEADERS : argv.captureheaders
         || process.env.CAPTUREHEADERS || false,
-    DEQUEUEINTERVAL : 5000,
-    POPINTERVAL : 5000,
     MONGOURL: argv.mongourl
         || (argv.mongourl || process.env.MONGOURL)
         || (argv.mongoprotocol || process.env.MONGOPROTOCOL || "mongodb") + "://"
@@ -91,26 +89,6 @@ var setOptions = function(opts, first){
         }
         OPTIONS.UNSAFEGET = diff.UNSAFEGET.new;
     }
-    if(opts.DEQUEUEINTERVAL !== undefined){
-        diff.DEQUEUEINTERVAL = {
-            old : OPTIONS.DEQUEUEINTERVAL,
-            new : Number(opts.DEQUEUEINTERVAL)
-        }
-        OPTIONS.DEQUEUEINTERVAL = diff.DEQUEUEINTERVAL.new;
-        if(OPTIONS.DEQUEUEINTERVAL){
-            dequeueUpdate();
-        }
-    }
-    if(opts.POPINTERVAL !== undefined){
-        diff.POPINTERVAL = {
-            old : OPTIONS.POPINTERVAL,
-            new : Number(opts.POPINTERVAL)
-        }
-        OPTIONS.POPINTERVAL = diff.POPINTERVAL.new;
-        if(OPTIONS.POPINTERVAL){
-            popUpdate();
-        }
-    }
     if(!first){
         LOG("OPTIONS")
         LOG(diff);
@@ -128,9 +106,7 @@ var wss;
 var db;
 var app = koa();
 var channels = {
-    pop : {},
-    dequeue : {},
-    flag : {}
+    subscribe : {}
 };
 
 var removeAllPromise = function (collection, key){
@@ -283,50 +259,8 @@ var removeFromAllChannels = function(socket){
     }
 }
 
-var updateChannels = function(order, remove){
-    for(channelName in channels){
-        if(channelName === "flag") break;
-        for(collectionkey in channels[channelName]){
-            var colAndKey = collectionkey.split("/");
-            var collection = db.collection(colAndKey[0]);
-            var orderedFuncs = [];
-            channels[channelName][collectionkey]
-            .forEach(function(socket){
-                var used = [];
-                return getPromise(
-                    collection,
-                    colAndKey[1],
-                    order || 1,
-                    0,
-                    remove
-                ).then(function(result){
-                    if(used.indexOf(socket) === -1){
-                        socket.send(result.value);
-                        used.pusn(socket)
-                    }else{
-
-                    }
-                }).fail(function(error){
-                    //socket.send("FAIL")
-                })
-            })
-        }
-    }
-}
-
-var dequeueUpdate = function(){
-    if(!OPTIONS.DEQUEUEINTERVAL) return;
-    updateChannels(1, true);
-    setTimeout(dequeueUpdate, OPTIONS.DEQUEUEINTERVAL);
-}
-
-var popUpdate = function(){
-    if(!OPTIONS.POPINTERVAL) return;
-    updateChannels(-1, true);
-    setTimeout(popUpdate, OPTIONS.POPINTERVAL);
-}
 var insertUpdate = function(collectionkey, id){
-    var sockets = channels.flag[collectionkey] || [];
+    var sockets = channels.subscribe[collectionkey] || [];
     sockets.forEach(function(socket){
         socket.send();
     })
@@ -360,20 +294,14 @@ var socketConnection = function(socket) {
     }
     collectionkey = collectionName + "/" + key;
     var query = path.query;
-    var queue = isSetTrue(query.queue);
-    var type = query.type;
-    var binary = isSetTrue(query.binary);
-    if(isSetTrue(query.autodequeue)){
-        toggleChannel("dequeue", collectionkey, socket);
-    }
-    if(isSetTrue(query.autopop)){
-        toggleChannel("pop", collectionkey, socket);
-    }
-    if(isSetTrue(query.autoflag)){
-        toggleChannel("flag", collectionkey, socket);
+    var queue = isSetTrue(query.queue);//?queue=true
+    var type = query.type;//?type=true
+    var binary = isSetTrue(query.binary);//?binary=binary
+    if(isSetTrue(query.subscribe)){
+        toggleChannel("subscribe", collectionkey, socket);
     }
     socket.on("close", function(reason){
-        LOG("SOCKET CLOSED", socket._closeCode, socket._closeMessage);a
+        LOG("SOCKET CLOSED", socket._closeCode, socket._closeMessage);
         removeFromAllChannels(socket);
     })
     socket.on("message", function(message){
@@ -390,19 +318,16 @@ var socketConnection = function(socket) {
         message = message.split(" ");
         var command = message.shift();
         switch(command){
-            case "binary":
-                //binary <boolean> <type>
+            case "binary"://binary <boolean>
                 binary = isSetTrue(message[0]);
                 socket.send(binary ? "binary" : "");
                 break;
-            case "type":
-                //type <type>
+            case "type"://type <type>
                 type = message[0];
                 socket.send(type);
                 break;
-            case "queue":
-                //Start queue - further messages will be enqueued
-                //queue <type> <binary>
+            case "queue"://queue <type> <binary>)
+                //all further messages will be enqueued
                 queue = true;
                 type = message[0];
                 binary = isSetTrue(message[1]);
@@ -452,18 +377,11 @@ var socketConnection = function(socket) {
                         }
                     })
                 break;
-            case "autodequeue":
+            case "subscribe":
                 socket.send(
-                    String(toggleChannel("dequeue", collectionkey, socket)));
+                    String(toggleChannel("subscribe", collectionkey, socket)));
                 break;
-            case "autopop":
-                socket.send(
-                    String(toggleChannel("pop", collectionkey, socket)));
-                break;
-            case "autoflag":
-                socket.send(
-                    String(toggleChannel("flag", collectionkey, socket)));
-                break;
+
         }
     })
 }
@@ -553,7 +471,7 @@ var getRoute = router.get("/:collectionName/:key",
         };
         var index = isInt(this.query.index) ? Number(this.query.index) : 0;
         var order = isSetTrue(this.query.pop)? -1 : 1;
-        var remove = add isSetTrue(this.query.dequeue)
+        var remove = isSetTrue(this.query.dequeue)
             && OPTIONS.UNSAFEGET;
         var result = yield getPromise(collection, key, order, index);
         if(result){
@@ -739,7 +657,6 @@ app.use(patchRoute);
 
 
 //Disconnect Mongo Client
-//Stop dequeue/popupdates
 MongoClient.connect(
     OPTIONS.MONGOURL,
     function(error, database){
@@ -752,7 +669,6 @@ MongoClient.connect(
         LOG("Application Listening:", OPTIONS.PORT);
         wss = new WS({server: app.server});
         wss.on('connection', socketConnection);
-        //wss.on('connection', function*(socket){socket.send("connected");});
         LOG("Web Sockets Listening:", OPTIONS.PORT);
         setOptions(OPTIONS, true);
         LOG("CONFIG:");
