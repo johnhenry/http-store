@@ -2,7 +2,7 @@ var argv = require('yargs')
     .boolean("verbose")
     .alias("v","verbose")
     .alias("p","port").argv;
-var LOG = argv.v ? console.log : function(){};
+var LOG = argv.verbose ? console.log : function(){};
 ////
 //Imports
 ////
@@ -29,9 +29,28 @@ try{
     LOG("No Additional Enviornemnt file (./.env) found.");
 };
 
+var isInt = function(value) {
+  return !isNaN(value) &&
+         parseInt(Number(value)) == value &&
+         !isNaN(parseInt(value, 10));
+}
+var isSetTrue = function(value){
+    return String(value).toLowerCase() === "true";
+}
+var isSetFalse = function(value){
+    return String(value).toLowerCase() === "false";
+}
 //Set options based on environmental variables
 var OPTIONS = {
-    PORT : (process.env.PORT || argv.port || 8080),
+    PORT : argv.port || process.env.PORT || 8080,
+    BASETYPE : argv.basetype || process.env.CHARSET | "text/plain",
+    CHARSET : argv.charset || process.env.CHARSET || "utf-8",
+    BODYLIMIT : argv.bodylimit || process.env.BODYLIMIT || "16mb",
+    UNSAFEGET : argv.unsafeget || !!process.env.UNSAFEGET || false,
+    CAPTUREHEADERS : argv.captureheaders
+        || process.env.CAPTUREHEADERS || false,
+    DEQUEUEINTERVAL : 5000,
+    POPINTERVAL : 5000,
     MONGOURL: argv.mongourl
         || (argv.mongourl || process.env.MONGOURL)
         || (argv.mongoprotocol || process.env.MONGOPROTOCOL || "mongodb") + "://"
@@ -65,7 +84,6 @@ var setOptions = function(opts, first){
         }
         OPTIONS.BODYLIMIT = diff.BODYLIMIT.new
     }
-
     if(opts.UNSAFEGET !== undefined){
         diff.UNSAFEGET = {
             old : OPTIONS.UNSAFEGET,
@@ -73,25 +91,23 @@ var setOptions = function(opts, first){
         }
         OPTIONS.UNSAFEGET = diff.UNSAFEGET.new;
     }
-
     if(opts.DEQUEUEINTERVAL !== undefined){
         diff.DEQUEUEINTERVAL = {
             old : OPTIONS.DEQUEUEINTERVAL,
             new : Number(opts.DEQUEUEINTERVAL)
         }
         OPTIONS.DEQUEUEINTERVAL = diff.DEQUEUEINTERVAL.new;
-        if(!diff.DEQUEUEINTERVAL.old && OPTIONS.DEQUEUEINTERVAL){
+        if(OPTIONS.DEQUEUEINTERVAL){
             dequeueUpdate();
         }
     }
-
     if(opts.POPINTERVAL !== undefined){
         diff.POPINTERVAL = {
             old : OPTIONS.POPINTERVAL,
             new : Number(opts.POPINTERVAL)
         }
         OPTIONS.POPINTERVAL = diff.POPINTERVAL.new;
-        if(!diff.POPINTERVAL.old && OPTIONS.POPINTERVAL){
+        if(OPTIONS.POPINTERVAL){
             popUpdate();
         }
     }
@@ -145,18 +161,32 @@ var removeOnePromise = function (collection, id){
     return d.promise;
 }
 
-var getPromise = function (collection, key, order, index){
+var getPromise = function (collection, key, order, index, remove){
     var d = q.defer();
     var callback = function(error, result){
         if(error) d.reject(error);
-        else d.resolve(result);
+        if(result) result.toArray(function(error, result){
+            if(error) d.reject(error);
+            if(!result.length) d.reject("");
+            result = result[0];
+            if(!remove || !result || !result._id) {
+                d.resolve(result);
+                return;
+            }
+            removeOnePromise(collection, result._id)
+                .then(function(){
+                    d.resolve(result);
+                }).fail(function(){
+                    d.resolve(result);
+                })
+        })
     }
     collection.find(
         { $query:
             { key : key},
           $orderby:
             { time : order }},
-        {},
+        {headers:false},
         { limit : 1 , skip : index},
         callback
     )
@@ -166,14 +196,20 @@ var getEmptyPromise = function (collection, key, order, index){
     var d = q.defer();
     var callback = function(error, result){
         if(error) d.reject(error);
-        else d.resolve(result);
+        if(result) result.toArray(function(error, result){
+            if(error) d.reject(error);
+            if(!result.length) d.reject("");
+            result = result[0];
+            d.resolve(result);
+        })
     }
+
     collection.find(
         { $query:
             { key : key},
           $orderby:
             { time : order }},
-        {value:false},
+        {value:false, headers:false},
         { limit : 1 , skip : index},
         callback
     )
@@ -185,6 +221,7 @@ var insertPromise = function(collection, obj){
     var callback = function(error, result){
         if(error) d.reject(error);
         else d.resolve(result);
+        insertUpdate(collection.collectionName + "/" + obj.key);
     }
     collection.insert(
         obj,
@@ -193,26 +230,10 @@ var insertPromise = function(collection, obj){
     return d.promise;
 }
 
-var enqueOne = co(function*(collection, obj){
-    return yield insertPromise(collection, obj);
-})
-
-var getOne = co(function*(collection, key, order, index, remove){
-        var result = yield getPromise(collection, key, order, index);
-        result = yield function(callback){
-            result.toArray(callback);
-        }
-        result = result[0];
-        if(remove && result){
-            yield removeOnePromise(collection, result._id);
-        }
-        return result;
-})
-
 ////
 //Socket Helpers
 ////
-var onChannel = function(channelName, collectiokey, socket){
+var onChannel = function(channelName, collectionkey, socket){
     var chan = channels[channelName][collectionkey];
     if(!chan) return false;
     if(!chan.length) return false;
@@ -221,32 +242,37 @@ var onChannel = function(channelName, collectiokey, socket){
     return chan;
 }
 
-var addToChannel = function(channel, collectionkey, socket){
-    var chan = onChannel.apply(this, arguments);
+//Returns true if succesully added
+var addToChannel = function(channelName, collectionkey, socket){
+    var chan = onChannel(channelName, collectionkey, socket);
     if(chan){
         return false;
     }
-    chan = channels[channel][collectionkey] = channels[channel][name] || [];
-    chan.push(socket)
+    channels[channelName][collectionkey] = channels[channelName][collectionkey] || []
+    channels[channelName][collectionkey].push(socket);
     return true;
 };
 
+//Returns true if successfully removed
 var removeFromChannel = function(channelName, collectionkey, socket){
-    var chan = onChannel.apply(this, arguments);
+    var chan = onChannel(channelName, collectionkey, socket);
     if(chan){
-        chan.splice(index, 1);
+        chan.splice(chan.indexOf(socket), 1);
+        if(chan.length < 1){
+            delete channels[channelName][collectionkey];
+        }
         return true;
     }
     return false;
 };
 
+//returns true if on channel
 var toggleChannel = function(channelName, collectionkey, socket){
     if(onChannel(channelName, collectionkey, socket)){
-        return removeFromChannel.apply(this, arguments);
+        return !removeFromChannel(channelName, collectionkey, socket);
     }else{
-        return addToChannel.apply(this, arguments)
+        return addToChannel(channelName, collectionkey, socket)
     }
-
 }
 
 var removeFromAllChannels = function(socket){
@@ -257,66 +283,86 @@ var removeFromAllChannels = function(socket){
     }
 }
 
-var updateChannels = function(order){
+var updateChannels = function(order, remove){
     for(channelName in channels){
-        for(collectionkey in channels[channelName]){//collectionkey = "a/b"
+        if(channelName === "flag") break;
+        for(collectionkey in channels[channelName]){
+            var colAndKey = collectionkey.split("/");
+            var collection = db.collection(colAndKey[0]);
+            var orderedFuncs = [];
             channels[channelName][collectionkey]
-            .forEach(function*(socket){
-                var collectionkey = collectionkey.split("/")
-                socket.send(
-                    yield getPromise(
-                        collectionkey[0],
-                        collectionkey[1],
-                        order || 1,
-                        0,
-                        true
-                        )
-                )
+            .forEach(function(socket){
+                var used = [];
+                return getPromise(
+                    collection,
+                    colAndKey[1],
+                    order || 1,
+                    0,
+                    remove
+                ).then(function(result){
+                    if(used.indexOf(socket) === -1){
+                        socket.send(result.value);
+                        used.pusn(socket)
+                    }else{
+
+                    }
+                }).fail(function(error){
+                    //socket.send("FAIL")
+                })
             })
         }
     }
 }
 
-var dequeueUpdate = function* (){
+var dequeueUpdate = function(){
     if(!OPTIONS.DEQUEUEINTERVAL) return;
-        updateChannels();
-    setTimeout(popUpdate, OPTIONS.DEQUEUEINTERVAL);
+    updateChannels(1, true);
+    setTimeout(dequeueUpdate, OPTIONS.DEQUEUEINTERVAL);
 }
 
-var popUpdate = function* (){
+var popUpdate = function(){
     if(!OPTIONS.POPINTERVAL) return;
-        updateChannels(-1);
+    updateChannels(-1, true);
     setTimeout(popUpdate, OPTIONS.POPINTERVAL);
 }
-var flagUpdate = function(collectionkey){
+var insertUpdate = function(collectionkey, id){
     var sockets = channels.flag[collectionkey] || [];
-    sockets.each(function(socket){
-        socket.send(1);
+    sockets.forEach(function(socket){
+        socket.send();
     })
 }
+var placeOnChannel = function(collection, key, message, type, binary){
+    var obj = {
+        key : key,
+        value : binary? Binary(message) : message,
+        time : Number(Date.now()),
+        type: type,
+    }
+    return insertPromise(collection, obj);
+}
+
+
 
 ////
 //Database
 ////
-var socketConnection = function (socket) {
+var socketConnection = function(socket) {
     var path = url.parse(socket.upgradeReq.url, true, true);
     var collectionkey = path.pathname;
     var pathname = collectionkey.split("/");
-    var collection = pathname[0];
-    var key = pathname[1];
-
-    if(!(collection && key)){
+    pathname.shift();
+    var collectionName = pathname.shift();
+    var key = pathname.join("/");
+    if(!(collectionName && key)){
         socket.send("Please connection using /:collection/:key");
         socket.close();
         return;
     }
-
+    collectionkey = collectionName + "/" + key;
     var query = path.query;
-    var queue = false;
-
-    if(isSetTrue(query.queue)){
-        queue = true;
-    }
+    var queue = isSetTrue(query.queue);
+    var type = query.type;
+    var binary = isSetTrue(query.binary);
     if(isSetTrue(query.autodequeue)){
         toggleChannel("dequeue", collectionkey, socket);
     }
@@ -326,58 +372,99 @@ var socketConnection = function (socket) {
     if(isSetTrue(query.autoflag)){
         toggleChannel("flag", collectionkey, socket);
     }
-
-    socket.on("message", function*(message){
+    socket.on("close", function(reason){
+        LOG("SOCKET CLOSED", socket._closeCode, socket._closeMessage);a
+        removeFromAllChannels(socket);
+    })
+    socket.on("message", function(message){
         message = message || "";
         if(queue){
-            placeOnChannel(collection, key, message);
+            placeOnChannel(
+                db.collection(collectionName),
+                key, message, type, binary)
+                .then(function(result){
+                    LOG("PUT", result[0]);
+                })
             return;
         }
         message = message.split(" ");
-        var command = message.unshift();;
-        message = message.join(" ");
-
+        var command = message.shift();
         switch(command){
-            case "queue":
-                queue = true;
-
+            case "binary":
+                //binary <boolean> <type>
+                binary = isSetTrue(message[0]);
+                socket.send(binary ? "binary" : "");
                 break;
-            case "enqueue": case "push":
-                placeOnChannel(collection, key, message);
-
+            case "type":
+                //type <type>
+                type = message[0];
+                socket.send(type);
+                break;
+            case "queue":
+                //Start queue - further messages will be enqueued
+                //queue <type> <binary>
+                queue = true;
+                type = message[0];
+                binary = isSetTrue(message[1]);
+                socket.send([type, binary ? "binary" : ""].toString());
+                break;
+            case "enqueue":
+                //enqueue <object>
+                message = message.join(" ");
+                var p = placeOnChannel(
+                    db.collection(collectionName),
+                    key, message, type, binary);
+                    p.then(function(result){
+                        LOG("PUT", result[0]);
+                    })
                 break;
             case "dequeue":
-                socket.send(
-                    yield getPromise(
-                        db.collection(collection),
-                        key, 1, 0 || Number(message), true));
-                break;
+                //Remove Item From Beginning queue
+                //dequeue <index=0> <full=false>
+                var index = Number(message[0]) || 0;
+                getPromise(db.collection(collectionName),
+                    key, 1, index, true).then(function(result){
+                        if(result.value && result.value.buffer){
+                            result.value = result.value.buffer;
+                        }
+                        if(isSetTrue(message[1])){
+                            socket.send(result);
+                        }else{
+                            socket.send(result.value);
+                        }
+                    }).fail(function(error){
 
+                    })
+                break;
             case "pop":
-                socket.send(
-                    yield getPromise(
-                        db.collection(collection),
-                        key, -1, 0 || Number(message), true));
+                //Remove Item From Top of Stack
+                //pop <index=0> <full=false>
+                var index = Number(message[0]) || 0;
+                getPromise(db.collection(collectionName),
+                    key, -1, index, true).then(function(result){
+                        if(result.value && result.value.buffer){
+                            result.value = result.value.buffer;
+                        }
+                        if(isSetTrue(message[1])){
+                            socket.send(result);
+                        }else{
+                            socket.send(result.value)
+                        }
+                    })
                 break;
-
             case "autodequeue":
-                toggleChannel("dequeue", collectionkey, socket);
+                socket.send(
+                    String(toggleChannel("dequeue", collectionkey, socket)));
                 break;
-
             case "autopop":
-                toggleChannel("pop", collectionkey, socket);
+                socket.send(
+                    String(toggleChannel("pop", collectionkey, socket)));
                 break;
-
             case "autoflag":
-                toggleChannel("flag", collectionkey, socket);
+                socket.send(
+                    String(toggleChannel("flag", collectionkey, socket)));
                 break;
         }
-        var dbcollection = db.collection(collection);
-        var obj = {
-            key : key,
-            time : Number(Date.now()),
-            type : this.request.headers["content-type"]
-        };
     })
 }
 
@@ -385,27 +472,21 @@ var socketConnection = function (socket) {
 //Helpers
 ////
 
-var isInt = function(value) {
-  return !isNaN(value) &&
-         parseInt(Number(value)) == value &&
-         !isNaN(parseInt(value, 10));
-}
-var isSetTrue = function(value){
-    return String(value).toLowerCase() === "true";
-}
+
+
 
 var render = function(self, obj, status){
     try{
         if(obj._id) self.set("ETag", obj._id);
         if(obj.type) self.set("Content-Type", obj.type);
         if(obj.value) self.response.body = obj.value;
-        self.response.status = status || 200;//Resource Created
-        console.log("RENDER", obj);
+        self.response.status = status || 200;
+        LOG("RENDER", obj);
     }catch(e){
         self.response.body = e;
         self.set("Content-Type", "text/plain");
-        self.response.status = 404;//Resource Created
-        console.log("RENDER", obj);
+        self.response.status = 404;
+        LOG("RENDER", obj);
     }
 }
 var render2 = function(response, obj, status){
@@ -422,9 +503,6 @@ var render2 = function(response, obj, status){
     }
 }
 
-var isSetFalse = function(value){
-    return String(value).toLowerCase() === "false";
-}
 
 ////
 //Application Middleware
@@ -461,6 +539,7 @@ var queryMethod = function* (next){
 }
 
 var queryMethod2 = function(request, response, next){
+    //TODO:Get Query Method Fromurl.
     request.method = request.query._method || this.request.method;
     next();
 }
@@ -474,15 +553,10 @@ var getRoute = router.get("/:collectionName/:key",
         };
         var index = isInt(this.query.index) ? Number(this.query.index) : 0;
         var order = isSetTrue(this.query.pop)? -1 : 1;
-        var remove = isSetTrue(this.query.remove)
-            || isSetTrue(this.query.dequeue)
+        var remove = add isSetTrue(this.query.dequeue)
             && OPTIONS.UNSAFEGET;
         var result = yield getPromise(collection, key, order, index);
-        result = yield function(callback){
-            result.toArray(callback);
-        }
-        if(result && result[0]){
-            result = result[0];
+        if(result){
             LOG("GET", result);
             if(remove){
                 yield removeOnePromise(collection, result._id);
@@ -499,7 +573,6 @@ var getRoute = router.get("/:collectionName/:key",
         }else{
             render(this, obj, 404)
         }
-
     }
 )
 var headRoute = router.head("/:collectionName/:key",
@@ -513,11 +586,7 @@ var headRoute = router.head("/:collectionName/:key",
         var index = isInt(this.query.index) ? Number(this.query.index) : 0;
         var order = isSetTrue(this.query.pop)? -1 : 1;
         var result = yield getEmptyPromise(collection, key, order, index);
-        result = yield function(callback){
-            result.toArray(callback);
-        }
-        if(result && result[0]){
-            result = result[0];
+        if(result){
             LOG("GET", result);
             obj._id = result._id;
             obj.type = result.type;
@@ -557,12 +626,7 @@ var deleteRoute = router.delete("/:collectionName/:key",
 
         if(respond){
             var result = yield getPromise(collection, key, order, index || 0)
-            result = yield function(callback){
-                result.toArray(callback);
-            }
-
-            if(result && result[0]){
-                result = result[0];
+            if(result){
                 LOG("GET", result);
                 yield removeOnePromise(collection, result._id);
                 LOG("DELETE", result._id);
@@ -593,6 +657,7 @@ var putRoute = router.put("/:collectionName/:key",
             time : Number(Date.now()),
             type : this.request.headers["content-type"]
         }
+        if(OPTIONS.CAPTUREHEADERS) obj.headers = this.request.headers;
         var remove = true
             && !isSetTrue(this.query.enqueue);
         if(remove){
@@ -649,6 +714,7 @@ var patchRoute = router.patch("/",
             time : Number(Date.now()),
             type : "application/json"
         }
+        if(OPTIONS.CAPTUREHEADERS) obj.headers = this.request.headers;
         try{
             obj.value = setOptions(JSON.parse(obj.value));
             render(this, obj, 200);
@@ -686,8 +752,9 @@ MongoClient.connect(
         LOG("Application Listening:", OPTIONS.PORT);
         wss = new WS({server: app.server});
         wss.on('connection', socketConnection);
+        //wss.on('connection', function*(socket){socket.send("connected");});
         LOG("Web Sockets Listening:", OPTIONS.PORT);
-        setOptions(process.env, true);
+        setOptions(OPTIONS, true);
         LOG("CONFIG:");
         LOG(OPTIONS);
     }

@@ -154,6 +154,7 @@ Options:
     --popinterval       Pop interval for connected sockets.
     --basetype          Default type assigned to stored objects.
     --unsafeget         Enables removal of items through GET get method by appending "?dequeue=true" to url if set.
+    --captureheaders    Capture and store all headers along with body.
     --mongoprotocol     Protocol for connecting to mongo host.
     --mongohost         MongoDB database host.
     --mongouser         MongoDB database user name.
@@ -168,6 +169,7 @@ If not set on the command line, the following options may set as environmental v
 - PORT
 - CHARSET
 - BODYLIMIT
+- CAPTUREHEADERS
 - DEQUEUEINTERVAL
 - POPINTERVAL
 - BASETYPE
