@@ -1,8 +1,15 @@
+////
+//Initial Command Line Stuff
+////
 var argv = require('yargs')
-    .boolean("verbose")
+    .boolean("verbose", false)
     .alias("v","verbose")
-    .alias("p","port").argv;
+    .alias("p","port")
+    .boolean("enable-env-file", true)
+    .alias("e","enable-env-file")
+    .argv
 var LOG = argv.verbose ? console.log : function(){};
+
 ////
 //Imports
 ////
@@ -10,24 +17,22 @@ var url = require('url');
 var WS = require('ws').Server;
 var mongodb = require('mongodb');
 var q = require('q');
-////
-//Imports (Experimental, requires 0.11 --harmony flag)
-////
-var koa = require('koa');
-var co = require('co');
-var router = require('koa-route');
-var getRawBody = require('raw-body');
+var express = require('express');
+var rawbody = require('raw-body');
+
 ////
 //Options
 ////
 
 //Set vars from .env file (if present)
-try{
-    require('node-env-file')(__dirname + '/.env');
-    LOG("Additional Environemtal Variables Loaded from .env");
-}catch(e){
-    LOG("No Additional Enviornemnt file (./.env) found.");
-};
+if(argv["enable-env-file"]){
+    try{
+        require('node-env-file')(__dirname + '/.env');
+        LOG("Additional Environemtal Variables Loaded from .env");
+    }catch(e){
+        LOG("No Enviornemnt file (./.env) found.");
+    };
+}
 
 var isInt = function(value) {
   return !isNaN(value) &&
@@ -59,6 +64,20 @@ var OPTIONS = {
         + (argv.mongobase || process.env.MONGOBASE || "")
 }
 
+////
+//Application
+////
+
+var router = express.Router();
+var MongoClient = mongodb.MongoClient;
+var ObjectID = mongodb.ObjectID;
+var Binary = mongodb.Binary;
+var wss;
+var db;
+var app = express();
+var channels = {
+    subscribe : {}
+};
 var setOptions = function(opts, first){
     var diff = {};
     if(opts.BASETYPE !== undefined){
@@ -89,25 +108,18 @@ var setOptions = function(opts, first){
         }
         OPTIONS.UNSAFEGET = diff.UNSAFEGET.new;
     }
+    if(opts.CAPTUREHEADERS !== undefined){
+        diff.CAPTUREHEADERS = {
+            old : OPTIONS.CAPTUREHEADERS,
+            new : !!opts.CAPTUREHEADERS
+        }
+        OPTIONS.CAPTUREHEADERS = diff.CAPTUREHEADERS.new;
+    }
     if(!first){
-        LOG("OPTIONS")
-        LOG(diff);
+        LOG("OPTIONS", diff)
     }
     return diff;
 }
-
-////
-//Application
-////
-var MongoClient = mongodb.MongoClient;
-var ObjectID = mongodb.ObjectID;
-var Binary = mongodb.Binary;
-var wss;
-var db;
-var app = koa();
-var channels = {
-    subscribe : {}
-};
 
 var removeAllPromise = function (collection, key){
     var d = q.defer();
@@ -143,9 +155,13 @@ var getPromise = function (collection, key, order, index, remove){
         if(error) d.reject(error);
         if(result) result.toArray(function(error, result){
             if(error) d.reject(error);
-            if(!result.length) d.reject("");
+            if(!result.length) d.reject(result);
             result = result[0];
             if(!remove || !result || !result._id) {
+                if(!result || !result._id){
+                    d.reject(result);
+                    return;
+                }
                 d.resolve(result);
                 return;
             }
@@ -173,13 +189,15 @@ var getEmptyPromise = function (collection, key, order, index){
     var callback = function(error, result){
         if(error) d.reject(error);
         if(result) result.toArray(function(error, result){
-            if(error) d.reject(error);
-            if(!result.length) d.reject("");
+            if(error || !result) d.reject(error);
+            if(result && !result.length){
+                d.reject(result);
+                return;
+            }
             result = result[0];
             d.resolve(result);
         })
     }
-
     collection.find(
         { $query:
             { key : key},
@@ -207,7 +225,7 @@ var insertPromise = function(collection, obj){
 }
 
 ////
-//Socket Helpers
+//Socket
 ////
 var onChannel = function(channelName, collectionkey, socket){
     var chan = channels[channelName][collectionkey];
@@ -275,11 +293,6 @@ var placeOnChannel = function(collection, key, message, type, binary){
     return insertPromise(collection, obj);
 }
 
-
-
-////
-//Database
-////
 var socketConnection = function(socket) {
     var path = url.parse(socket.upgradeReq.url, true, true);
     var collectionkey = path.pathname;
@@ -390,96 +403,85 @@ var socketConnection = function(socket) {
 //Helpers
 ////
 
-
-
-
-var render = function(self, obj, status){
-    try{
-        if(obj._id) self.set("ETag", obj._id);
-        if(obj.type) self.set("Content-Type", obj.type);
-        if(obj.value) self.response.body = obj.value;
-        self.response.status = status || 200;
-        LOG("RENDER", obj);
-    }catch(e){
-        self.response.body = e;
-        self.set("Content-Type", "text/plain");
-        self.response.status = 404;
-        LOG("RENDER", obj);
-    }
-}
-var render2 = function(response, obj, status){
-    try{
-        response.status(status || 200)
-        if(obj._id) response.headers["ETag"] =  obj._id;
-        if(obj.type) response.headers["Content-Type"] = obj.type;
-        if(obj.value) response.body = obj.value;
-        if(obj.body) response.send(obj.body);
-        else response.end();
-    }catch(e){
-        response.headers["Content-Type"] = "text/plain";
-        response.status(404).send(e);
-    }
+var render = function(response, obj, status){
+    response.status(status || 200);
+    if(obj._id) response.setHeader("ETag", obj._id);
+    if(obj.type) response.setHeader("Content-Type", obj.type);
+    response.send(obj.value);
+    LOG("RENDER", obj);
 }
 
 
 ////
 //Application Middleware
 ////
-var rawBody = function* (next){
-    var contentType =  (this.request.headers["content-type"] || "")
+
+var rawBody = function(request, response, next){
+    var contentType =  (request.headers["content-type"] || "")
     .split(" ").join("").split(";");
-    this.baseType = contentType[0] || OPTIONS.BASETYPE;
-    this.encoding = this.charset
-        || ((contentType[1] || "").split("charset=")[1] || "").toLowerCase()
+    request.baseType = contentType[0] || OPTIONS.BASETYPE;
+    request.encoding = ((contentType[1] || "").split("charset=")[1] || "").toLowerCase()
         || OPTIONS.CHARSET;
-    this.raw = yield getRawBody(this.req, {
-        length: this.length,
+    rawbody(request, {
+        length: request.length,
         limit: OPTIONS.BODYLIMIT || undefined,
-        encoding: this.encoding !== "binary" ? this.encoding : null
-    })
-    yield next;
-}
-var rawBody2 = function* (request, response, next){
-    request.raw = "";
-    if(options.includeBody){
-        request.on("data", function(chunk) {
-            request.raw += chunk;
-        });
-    }
-    request.on("end", function(){
+        encoding: request.encoding !== "binary" ? request.encoding : null
+    },function(error, body){
+        request.raw = body;
         next();
     })
 }
 
-var queryMethod = function* (next){
-    this.request.method = this.query._method || this.request.method;
-    yield next;
-}
+////
+//Application Middleware:Routing
+////
 
-var queryMethod2 = function(request, response, next){
-    //TODO:Get Query Method Fromurl.
-    request.method = request.query._method || this.request.method;
-    next();
-}
-var getRoute = router.get("/:collectionName/:key",
-    function* (collectionName, key){
-        var collection = db.collection(collectionName);
-        var obj = {
-            key : key,
-            time : Number(Date.now()),
-            type : this.request.headers["content-type"]
-        };
-        var index = isInt(this.query.index) ? Number(this.query.index) : 0;
-        var order = isSetTrue(this.query.pop)? -1 : 1;
-        var remove = isSetTrue(this.query.dequeue)
-            && OPTIONS.UNSAFEGET;
-        var result = yield getPromise(collection, key, order, index);
-        if(result){
-            LOG("GET", result);
-            if(remove){
-                yield removeOnePromise(collection, result._id);
+var getFunc = function(request, response){
+    var collectionName = request.params.collectionName;
+    var key = request.params.key;
+    var collection = db.collection(collectionName);
+    var obj = {
+        key : key,
+        time : Number(Date.now()),
+        type : request.headers["content-type"]
+    };
+    var index = isInt(request.query.index) ? Number(request.query.index) : 0;
+    var order = isSetTrue(request.query.pop) ? -1 : 1;
+
+    var remove =
+        (request.method === "DELETE"
+        || (OPTIONS.UNSAFEGET && isSetTrue(request.query.dequeue)))
+        && (request.method !== "HEAD");
+
+    var respond = request.method === "GET"
+        || request.method === "HEAD"
+        || isSetTrue(request.query.dequeue)
+        || (isInt(request.query.index))
+        || (isSetTrue(request.query.pop));
+    var getObject = function(){
+        return (request.method !== "HEAD"  ? getPromise : getEmptyPromise )
+        (collection, key, order, index)
+            .then(function(result){
+                LOG("GET", result);
+                return q(result);
+            }).fail(function(e){
+                LOG("GET FAILURE", e);
+                return q();
+            })
+    }
+    var deleteObject = function(result){
+        if(result) return removeOnePromise(collection, result._id)
+            .then(function(deleted){
                 LOG("DELETE", result._id);
-            }
+                return q(result);
+            }).fail(function(e){
+                LOG("DELETE FAILURE", e);
+                return q(result);
+            })
+        return q(result);
+    }
+    var renderObject = function(result){
+        if(result){
             if(result.value && result.value.buffer){
                 result.value = result.value.buffer;
             }
@@ -487,174 +489,117 @@ var getRoute = router.get("/:collectionName/:key",
             obj._id = result._id;
             obj.type = result.type;
             obj.time = result.time;
-            render(this, obj, 200);
+            render(response, obj, 200);
         }else{
-            render(this, obj, 404)
+            render(response, obj, 404)
         }
     }
-)
-var headRoute = router.head("/:collectionName/:key",
-    function* (collectionName, key){
-        var collection = db.collection(collectionName);
-        var obj = {
-            key : key,
-            time : Number(Date.now()),
-            type : this.request.headers["content-type"]
-        };
-        var index = isInt(this.query.index) ? Number(this.query.index) : 0;
-        var order = isSetTrue(this.query.pop)? -1 : 1;
-        var result = yield getEmptyPromise(collection, key, order, index);
-        if(result){
-            LOG("GET", result);
-            obj._id = result._id;
-            obj.type = result.type;
-            obj.time = result.time;
-            render(this, obj, 200);
-        }else{
-            render(this, obj, 404)
-        }
-
-    }
-)
-var traceRoute = router.trace("/:collectionName/:key",
-    function* (collectionName, key){
-        var obj = {
-            time : Number(Date.now()),
-            value : this.encoding === "binary" ? Binary(this.raw) : this.raw,
-            type : this.request.headers["content-type"]
-        };
-        render(this, obj, 200);
-    }
-)
-
-
-var deleteRoute = router.delete("/:collectionName/:key",
-    function* (collectionName, key){
-        var collection = db.collection(collectionName);
-        var obj = {
-            key : key,
-            time : Number(Date.now()),
-            type : this.request.headers["content-type"]
-        };
-        var index = isInt(this.query.index) ? Number(this.query.index) : false;
-        var order = isSetTrue(this.query.pop)? -1 : 1;
-        var respond = (order === - 1)
-            && index !== false
-            || isSetTrue(this.query.dequeue);
-
-        if(respond){
-            var result = yield getPromise(collection, key, order, index || 0)
-            if(result){
-                LOG("GET", result);
-                yield removeOnePromise(collection, result._id);
-                LOG("DELETE", result._id);
-                if(result.value && result.value.buffer){
-                    result.value = result.value.buffer;
-                }
-                obj.value = result.value;
-                obj._id = result._id;
-                obj.type = result.type || obj.type;
-                obj.time = result.time;
-                render(this, obj, 410);
-            }else{
-                render(this, obj, 404);
-            }
-        }else{
-            yield removeAllPromise(collection, key);
-            render(this, obj, 410);
-        }
-    }
-)
-
-var putRoute = router.put("/:collectionName/:key",
-    function* (collectionName, key){
-        var collection = db.collection(collectionName);
-        var obj = {
-            key : key,
-            value : this.encoding === "binary" ? Binary(this.raw) : this.raw,
-            time : Number(Date.now()),
-            type : this.request.headers["content-type"]
-        }
-        if(OPTIONS.CAPTUREHEADERS) obj.headers = this.request.headers;
-        var remove = true
-            && !isSetTrue(this.query.enqueue);
+    if(respond){
         if(remove){
-            yield removeAllPromise(collection, key);
-            LOG("DELETE", key);
+            getObject()
+            .then(deleteObject)
+            .then(renderObject)
+            .fail(renderObject)
+        }else{
+            getObject()
+            .then(renderObject)
+            .fail(renderObject)
         }
-        var result = yield insertPromise(collection, obj);
-        try{
-            result = result[0];
-            obj._id = result._id;
-            LOG("PUT", obj);
-            render(this, obj, 201);
-        }catch(e){
-            obj.value = e;
-            render(this, obj, 500)
-        }
-
+    }else{
+        removeAllPromise(collection, key)
+            .then(function(){
+                render(response, obj, 410);
+            })
     }
-)
+}
 
-var postRoute = router.post("/:collectionName/:key",
-    function* (collectionName, key){
-        var collection = db.collection(collectionName);
-        var obj = {
-            key : key,
-            value : this.encoding === "binary" ? Binary(this.raw) : this.raw,
-            time : Number(Date.now()),
-            type : this.request.headers["content-type"]
-        }
-        var remove = false
-            || isSetFalse(this.query.enqueue);
 
-        if(remove){
-            yield removeAllPromise(collection, key);
-            LOG("DELETE", key);
-        }
-        var result = yield insertPromise(collection, obj);
-        try{
-            result = result[0];
-            obj._id = result._id;
-            LOG("PUT", obj);
-            render(this, obj, 201);
-        }catch(e){
-            obj.value = e;
-            render(this, obj, 500)
-        }
+
+var putFunc = function(request, response){
+    var collectionName = request.params.collectionName;
+    var key = request.params.key;
+    var collection = db.collection(collectionName);
+    var obj = {
+        key : key,
+        value : request.encoding === "binary" ? Binary(request.raw) : request.raw,
+        time : Number(Date.now()),
+        type : request.headers["content-type"]
     }
-)
-
-var patchRoute = router.patch("/",
-    function* (){
-        var obj = {
-            value : this.raw,
-            time : Number(Date.now()),
-            type : "application/json"
-        }
-        if(OPTIONS.CAPTUREHEADERS) obj.headers = this.request.headers;
-        try{
-            obj.value = setOptions(JSON.parse(obj.value));
-            render(this, obj, 200);
-        }catch(e){
-            obj.value = e;
-            render(this, obj, 500);
-        }
+    if(OPTIONS.CAPTUREHEADERS) obj.headers = request.headers;
+    var remove = request.method === "POST" ?
+        isSetTrue(request.query.enqueue) :
+        !isSetFalse(request.query.enqueue);
+    var deletePreviousObjects = function(){
+        return removeAllPromise(collection, key)
+            .then(function(deleted){
+                LOG("DELETE", key);
+                return q();
+            }).fail(function(e){
+                LOG("DELETE FAILURE", e);
+                return q([]);
+            })
     }
-)
+    var createObject = function(){
+        return insertPromise(collection, obj)
+            .then(function(result){
+                LOG("PUT", result);
+                return q(result);
+            }).fail(function(e){
+                LOG("GET FAILURE", e);
+                return q([]);
+            })
+    }
+    var renderObject = function(result){
+        result = result[0];
+        obj._id = result._id;
+        LOG("PUT", obj);
+        render(response, obj, 201);
+    }
+    if(remove){
+        deletePreviousObjects()
+        .then(createObject)
+        .then(renderObject)
+        .fail(renderObject);
+    }else{
+        createObject()
+        .then(renderObject)
+        .fail(renderObject);
+    }
+}
+
+var traceFunc = function(request, response){
+    var collectionName = request.params.collectionName;
+    var key = request.params.key;
+    var obj = {
+        time : Number(Date.now()),
+        value : request.encoding === "binary" ? Binary(request.raw) : request.raw,
+        type : request.headers["content-type"]
+    };
+    render(response, obj, 200);
+}
+
+
+var patchFunc = function(request, response){
+    var obj = {
+        value : request.raw,
+        time : Number(Date.now()),
+        type : "application/json"
+    }
+    obj.value = setOptions(JSON.parse(obj.value));
+    render(response, obj, 200);
+
+}
 
 app.use(rawBody);
-app.use(queryMethod);
+router.delete("/:collectionName/:key", getFunc);
+router.get("/:collectionName/:key", getFunc);
+router.head("/:collectionName/:key", getFunc);
+router.put("/:collectionName/:key", putFunc);
+router.post("/:collectionName/:key", putFunc);
+router.trace("/:collectionName/:key", traceFunc);
 
-app.use(getRoute);
-app.use(headRoute);
-app.use(traceRoute);
-
-app.use(deleteRoute);
-app.use(putRoute);
-app.use(postRoute);
-app.use(patchRoute);
-
+router.patch("/", patchFunc);
+app.use('/', router)
 
 //Disconnect Mongo Client
 MongoClient.connect(

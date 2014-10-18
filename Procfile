@@ -1,1 +1,1 @@
-web: node --harmony server.js --verbose
+web: node server.js -v --no-e
