@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 ////
 //Initial Command Line Stuff
 ////

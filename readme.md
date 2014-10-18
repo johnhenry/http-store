@@ -2,9 +2,18 @@
 
 HTTP Key-Value Store on top of MongoDB
 
+
+##Features
+- Connect to a MongoDB Instance using HTTP and Web Sockets
+- Due and dequeue data in a simple
+
+
 ##Deploy
 
-You can easily deploy this application to multiple environments.
+You can easily deploy this application to multiple environments. You can run an instance locally
+
+###Prerequesites
+Befor you deploy anywhere, you must have a mongodb server running somewhere.
 
 ###Deploy on Heroku
 1. Click Here:
@@ -74,6 +83,17 @@ By default, the server will run at 127.0.0.1:5000
 
 Options will be set via an optional _.env_ file.
 
+###Install CLI App
+
+1. In a terminal type:
+```
+npm install -g http-store
+```
+
+2. Run
+```
+http-store --mongourl=<mongo database url>
+```
 
 ##API
 
