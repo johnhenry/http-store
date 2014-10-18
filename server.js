@@ -43,11 +43,15 @@ var isInt = function(value) {
          parseInt(Number(value)) == value &&
          !isNaN(parseInt(value, 10));
 }
-var isSetTrue = function(value){
-    return String(value).toLowerCase() === "true";
+var isSetTrue = function(value, alt){
+    return String(value).toLowerCase() === "true" ? true
+    : String(value).toLowerCase() === "false" ? false
+    : alt || false;
 }
-var isSetFalse = function(value){
-    return String(value).toLowerCase() === "false";
+var isSetFalse = function(value, alt){
+    return String(value).toLowerCase() === "false" ? true
+    : String(value).toLowerCase() !== "true" ? alt
+    : false
 }
 //Set options based on environmental variables
 var OPTIONS = {
@@ -58,6 +62,7 @@ var OPTIONS = {
     UNSAFEGET : argv.unsafeget || !!process.env.UNSAFEGET || false,
     CAPTUREHEADERS : argv.captureheaders
         || process.env.CAPTUREHEADERS || false,
+    NOPEEK : argv.nopeek || !!process.env.NOPEEK || false,
     MONGOURL: argv.mongourl
         || (argv.mongourl || process.env.MONGOURL)
         || (argv.mongoprotocol || process.env.MONGOPROTOCOL || "mongodb") + "://"
@@ -111,6 +116,13 @@ var setOptions = function(opts, first){
             new : !!opts.UNSAFEGET
         }
         OPTIONS.UNSAFEGET = diff.UNSAFEGET.new;
+    }
+    if(opts.NOPEEK !== undefined){
+        diff.NOPEEK = {
+            old : OPTIONS.NOPEEK,
+            new : !!opts.NOPEEK
+        }
+        OPTIONS.NOPEEK = diff.NOPEEK.new;
     }
     if(opts.CAPTUREHEADERS !== undefined){
         diff.CAPTUREHEADERS = {
@@ -246,9 +258,11 @@ var addToChannel = function(channelName, collectionkey, socket){
     if(chan){
         return false;
     }
-    channels[channelName][collectionkey] = channels[channelName][collectionkey] || []
+    chan =
+    channels[channelName][collectionkey] =
+    channels[channelName][collectionkey] || []
     channels[channelName][collectionkey].push(socket);
-    return true;
+    return chan;
 };
 
 //Returns true if successfully removed
@@ -261,7 +275,7 @@ var removeFromChannel = function(channelName, collectionkey, socket){
         }
         return true;
     }
-    return false;
+    return chan;
 };
 
 //returns true if on channel
@@ -305,17 +319,28 @@ var socketConnection = function(socket) {
     var collectionName = pathname.shift();
     var key = pathname.join("/");
     if(!(collectionName && key)){
-        socket.send("Please connection using /:collection/:key");
+        socket.send("Please connect using /:collection/:key");
         socket.close();
         return;
     }
     collectionkey = collectionName + "/" + key;
     var query = path.query;
-    var queue = isSetTrue(query.queue);//?queue=true
-    var type = query.type;//?type=true
-    var binary = isSetTrue(query.binary);//?binary=binary
+    var queue = isSetTrue(query.queue);//?queue=
+    var peek = isSetTrue(query.peek);//?peek=
+    if(OPTIONS.NOPEEK) peek = false;
+    var full = isSetTrue(query.full);//?full=
+    var binary = isSetTrue(query.binary);//?binary=
+    var type = query.type || "";//?type=
     if(isSetTrue(query.subscribe)){
-        toggleChannel("subscribe", collectionkey, socket);
+        addToChannel("subscribe", collectionkey, socket);
+    }
+    if(query.enqueue !== undefined){
+        placeOnChannel(
+            db.collection(collectionName),
+            key, query.enqueue, type, binary)
+            .then(function(result){
+                LOG("PUT", result[0]);
+            })
     }
     socket.on("close", function(reason){
         LOG("SOCKET CLOSED", socket._closeCode, socket._closeMessage);
@@ -335,22 +360,9 @@ var socketConnection = function(socket) {
         message = message.split(" ");
         var command = message.shift();
         switch(command){
-            case "binary"://binary <boolean>
-                binary = isSetTrue(message[0]);
-                socket.send(binary ? "binary" : "");
-                break;
-            case "type"://type <type>
-                type = message[0];
-                socket.send(type);
-                break;
-            case "queue"://queue <type> <binary>)
-                //all further messages will be enqueued
-                queue = true;
-                type = message[0];
-                binary = isSetTrue(message[1]);
-                socket.send([type, binary ? "binary" : ""].toString());
-                break;
+            //Sending
             case "enqueue":
+                //Add item to queue with the set encoding and type
                 //enqueue <object>
                 message = message.join(" ");
                 var p = placeOnChannel(
@@ -360,45 +372,87 @@ var socketConnection = function(socket) {
                         LOG("PUT", result[0]);
                     })
                 break;
-            case "dequeue":
-                //Remove Item From Beginning queue
-                //dequeue <index=0> <full=false>
-                var index = Number(message[0]) || 0;
-                getPromise(db.collection(collectionName),
-                    key, 1, index, true).then(function(result){
-                        if(result.value && result.value.buffer){
-                            result.value = result.value.buffer;
-                        }
-                        if(isSetTrue(message[1])){
-                            socket.send(result);
-                        }else{
-                            socket.send(result.value);
-                        }
-                    }).fail(function(error){
-
-                    })
+            case "binary":
+                //Set Enqueue Encoding
+                //binary <boolean>
+                binary = isSetTrue(message[0], !binary);
+                socket.send(binary ? "+binary" : "-binary");
                 break;
+            case "type":
+                //Set Enqueue Type
+                //type <type>
+                type = message[0];
+                socket.send(type);
+                break;
+            case "queue":
+                //Converts sockets such that all further messages will
+                //be enqueued and commands will not be separated.
+                //messages
+                //queue <binary> <type>)
+                //all further messages will be enqueued
+                queue = true;
+                binary = isSetTrue(message[0], binary);
+                type = message[1] || type;
+                socket.send(
+                    "+queue "
+                    + (binary ? "+binary" : "-binary")
+                    + " " + type);
+                break;
+            //Receiving
+            case "dequeue":
             case "pop":
-                //Remove Item From Top of Stack
-                //pop <index=0> <full=false>
-                var index = Number(message[0]) || 0;
+                //Remove Item From of Queue/Stack
+                //dedueue/pop <peek=false> <full=false> <index=0>
+                var p = isSetTrue(message[0], peek);
+                var f = isSetTrue(message[1], full);
+                var index = isInt(message[2])? Number(message[2]) : 0;
+                var order = command === "dequeue" ? 1 : -1;
                 getPromise(db.collection(collectionName),
-                    key, -1, index, true).then(function(result){
+                    key, order, index, !p).then(function(result){
                         if(result.value && result.value.buffer){
                             result.value = result.value.buffer;
                         }
-                        if(isSetTrue(message[1])){
-                            socket.send(result);
+                        if(f){
+                            socket.send(JSON.stringify(result));
                         }else{
                             socket.send(result.value)
                         }
                     })
                 break;
-            case "subscribe":
-                socket.send(
-                    String(toggleChannel("subscribe", collectionkey, socket)));
+            case "peek":
+                //Set Dequeue/Pop peek
+                //peek peek <boolean = true>
+                var p = message[0];
+                if(isSetTrue(p)) peek = true;
+                else if(isSetFalse(p)) peek = false;
+                else peek = !peek;
+                if(OPTIONS.NOPEEK) peek = false;
+                socket.send(peek ? "+peek" : "-peek");
                 break;
-
+            case "full":
+                //binary <boolean>
+                //full peek <boolean = true>
+                var f = message[0];
+                if(isSetTrue(f)) full = true;
+                else if(isSetFalse(f)) full = false;
+                else full = !full;
+                socket.send(full ? "+full" : "-full");
+                break;
+            case "subscribe":
+                var sub = message[0]
+                    if(isSetTrue(sub)){
+                        addToChannel("subscribe", collectionkey, socket);
+                        sub = true;
+                    }
+                    else if(isSetFalse(sub)){
+                        removeFromChannel("subscribe", collectionkey, socket);
+                        sub = false;
+                    }
+                    else
+                        sub =
+                        toggleChannel("subscribe", collectionkey, socket);
+                socket.send(sub ? "+subscribe" : "-subscribe");
+                break;
         }
     })
 }
@@ -456,7 +510,8 @@ var getFunc = function(request, response){
         (request.method === "DELETE"
         || (OPTIONS.UNSAFEGET && isSetTrue(request.query.dequeue)))
         && (request.method !== "HEAD");
-
+    if(OPTIONS.NOPEEK
+        && OPTIONS.UNSAFEGET && request.method === "GET") remove = true;
     var respond = request.method === "GET"
         || request.method === "HEAD"
         || isSetTrue(request.query.dequeue)

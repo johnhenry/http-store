@@ -308,15 +308,21 @@ wscat -c http://127.0.0.1:8080/integers/primes
 
 ```
 
-When connecting, you may attach the following attributes to a url to specify a socket's properties:
+When connecting, you may attach the following attributes to a url to specify a socket's attributes:
 
-- ?binary=true    - items enqueued on this channel will be stored as binary data (See Commands)
-- ?type= < string >  - items enqueued will be stored with type type (See Commands)
-- ?subscribe=true - subscribes the socket to updates (See Commands)
-- ?queue=true     - makes the socket a queue (See Commands)
-- ?closeout= < object > - sends an item on a socket and closes it out [NOT IMPLEMENTED]
+- ?enqueue= < object >  - object sent at beginning of connection. (See Commands)
+- ?binary=true          - items enqueued on this channel will be stored as binary data (See Commands)
+- ?type= < string >     - items enqueued will be stored with type type (See Commands)
+- ?queue=true           - makes the socket a queue (See Commands)
 
-Example: Connect to a web socket with subscribe set
+- ?peek=true            - items dequed/popped will remain in the database (See Commands)
+- ?full=true            - full items will be dequed/popped - not just their values (See Commands)
+- ?subscribe=true       - subscribes the socket to updates (See Commands)
+
+
+
+
+Example: Connect to a web socket with the subscribe set
 
 ```
 wscat -c http://127.0.0.1:8080/integers/primes?subscribe=true
@@ -343,23 +349,16 @@ __type__ type:< string > - All data enqueued items will have the associated type
 
 __enqueue__ item:< object > Enqueues an item.
 
-__dequeue__ full: < boolean > -> item:<object>
-Dequeues an item. Add full parameter to get full stored objet.[Partially IMPLEMENTED]
+__dequeue__ [peek: < boolean=false > full: < boolean > index: < uint >]-> item:<object>
+Dequeues an item. Add full parameter to get full stored objet.
 
-__dequeuepeek__ [full:< boolean>] -> item:<object>
-Dequeues an item without removing it. Add full parameter to get full stored objet. [NOT IMPLEMENTED]
+__pop__ [peek: < boolean=false >  full: < boolean > index: < uint >] -> item:<object>
+Pops an item.  Add full parameter to get full stored objet.
 
-__pop__ [full: < boolean >] -> item:<object>
-Pops an item.  Add full parameter to get full stored objet. [Partially IMPLEMENTED]
-
-__poppeek__ [full: < boolean >] -> item:<object>
-Pops an item without removing.  Add full parameter to get full stored objet.
-    [NOT IMPLEMENTED]
-
-__subscribe__
+__subscribe__ [subscribe:<boolean>]
 Toggles socket's subscriptions attribute. Subscribed sockets will recieve an empty message when an item is added to the database through this server. Subscriber will not receive notifications for other items added through other server servers or methods.
 
-__queue__ [type:<string> binary-on:<boolean>]
+__queue__ [binary-on:<boolean> type:<string>]
 
 Following this command, all further messages will be saved as objects
 
