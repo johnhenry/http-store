@@ -95,6 +95,13 @@ npm install -g http-store
 http-store --mongourl=<mongo database url>
 ```
 
+Example:
+
+```
+http-store --mongourl=mongodb://username:password@127.0.0.1:27017/http-store
+```
+
+
 ##API
 
 ###NOTE note on queues and stacks.
