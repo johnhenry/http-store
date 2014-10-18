@@ -7,6 +7,7 @@ var argv = require('yargs')
     .alias("p","port")
     .boolean("enable-env-file", true)
     .alias("e","enable-env-file")
+    .alias("f","env-file")
     .argv
 var LOG = argv.verbose ? console.log : function(){};
 
@@ -26,11 +27,12 @@ var rawbody = require('raw-body');
 
 //Set vars from .env file (if present)
 if(argv["enable-env-file"]){
+    var envFile = (argv["env-file"]) || __dirname + '/.env';
     try{
-        require('node-env-file')(__dirname + '/.env');
-        LOG("Additional Environemtal Variables Loaded from .env");
+        require('node-env-file')();
+        LOG("Additional Environment Variables Loaded from: ", envFile);
     }catch(e){
-        LOG("No Enviornemnt file (./.env) found.");
+        LOG("No Enviornemnt file ("+envFile+") found.", e);
     };
 }
 

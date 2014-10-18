@@ -142,7 +142,223 @@ Similar to GET but without the value and removal is impossible. Headers remain i
 
 Responds with the user's request.
 
+##Usage
+
+###HTTP
+
+####Clients
+
+There are a number of clients that support HTTP. I use curl in the examples because it comes pre-installed on most *nix machines, but there are other [graphical] clients available such as [Advanced REST Client](http://restforchrome.blogspot.com/http://restforchrome.blogspot.com/) and [Postman](http://www.getpostman.com/).
+
+Also, please note that I haven't had any success uploading binary files through Advanced REST Client or Postman, but I have had success with curl.
+
+
+#### Inserting
+
+You may insert a request's body into the database with the following commands:
+
+```
+    PUT <server address>/<collection>/<key>
+
+    POST <server address>/<collection>/<key>?enquque=false
+```
+
+Example: Insert an image
+
+```
+curl -X PUT <server address>/flowers/rose.jpg -H "Content-Type: image/jpeg; charset=binary" --data-binary @/full/path/to/http-store/example/rose.jpg
+```
+(Note the "@")
+
+#### Retrieving
+
+You may insert a request's body into the database with the following commands:
+
+```
+    GET <server address>/<collection>/<key>
+```
+
+Example: Retrive an image
+
+```
+curl -X GET http://127.0.0.1:8080/flowers/rose.jpg > newrose.jpg
+```
+
+You can also attach the "?index" parameter to indicate which index to remove and "?pop=true" to start counting from the end of the list. Finally, you may add "?dequeue=true" to remove a single item as you retrieve it
+
+
+#### Enqueueing
+
+
+You may enqueue a into the database item with the following commands:
+
+```
+    POST <server address>/<collection>/<key>
+
+    PUT <server address>/<collection>/<key>?enquque=true
+```
+
+Example: Enqueue successive images
+
+```
+curl -X POST http://127.0.0.1:8080/flowers/list -H "Content-Type: image/png; charset=binary" --data-binary @/full/path/to/http-store/example/daisy.jpg
+
+curl -X POST http://127.0.0.1:8080/flowers/list -H "Content-Type: image/jpeg; charset=binary" --data-binary @/full/path/to/http-store/example/rose.jpg
+```
+
+#### Dequeueing
+
+You may insert a request's body into the database with the following commands:
+
+```
+    GET <server address>/<collection>/<key>?dequeue=true
+    DELETE <server address>/<collection>/<key>?dequeue=true
+```
+(Note: This will only work for the GET method if you have the UNSAFEGET option set.)
+
+
+Example : Dequeue successive images
+
+```
+curl -X DELETE http://127.0.0.1:8080/flowers/list?dequeue=true > rose.jpg
+
+curl -X DELETE http://127.0.0.1:8080/flowers/list?dequeue=true > daisy.jpg
+
+```
+
+You can also attach the "?index" parameter to indicate which index to remove and "?pop=true" to start counting from the end of the list.
+
+#### Removing
+
+You may remove all items at a key with the following commands:
+
+```
+    DELETE <server address>/<collection>/<key>
+```
+
+Example: Remove all images
+
+```
+curl -X DELETE http://127.0.0.1:8080/flowers/list
+
+```
+Appending "?dequeue=true" will remove and return a single item from the list.
+Appending the "?index" parameter to indicate a specific index to dequeue, "?pop=true" to start counting from the end of the list.
+
+
+###Web Sockets
+
+####Client
+
+There are a number of clients that support Web Sockets HTTP. I use wscat, in the examples because it's easy to install. But there other [graphical] clients available such as [Advanced REST Client](http://restforchrome.blogspot.com/).
+
+#####Installing wscat
+If you have node and npm installed, you may install wscat with the followiing commmand:
+
+```
+npm install --g ws
+```
+
+####Connecting
+You may connect using the same url as your server
+
+```
+<server address>/<collection>/<key>
+```
+
+Depending on your client, you must attach one of the following protocols (or their secure counterparts) to the beginning of the server address. If one doesn't work, try the other.
+
+```
+ws:// (or wss://)    OR    http:// (or http://)
+```
+
+
+
+Example: Connect to a web socket
+
+```
+wscat -c http://127.0.0.1:8080/integers/primes
+
+```
+
+When connecting, you may attach the following attributes to a url to specify a socket's properties:
+
+- ?binary=true    - items enqueued on this channel will be stored as binary data (See Commands)
+- ?type= < string >  - items enqueued will be stored with type type (See Commands)
+- ?subscribe=true - subscribes the socket to updates (See Commands)
+- ?queue=true     - makes the socket a queue (See Commands)
+- ?closeout= < object > - sends an item on a socket and closes it out [NOT IMPLEMENTED]
+
+Example: Connect to a web socket with subscribe set
+
+```
+wscat -c http://127.0.0.1:8080/integers/primes?subscribe=true
+>
+```
+Example: Connect to a web socket as a queue and immediately send three numbers
+
+```
+wscat -c http://127.0.0.1:8080/integers/primes?queue=true
+>2
+>3
+>5
+```
+
+These may also be set with commands (See Commands immediately below.)
+
+####Commands
+
+You can send the following commands once connected (if not connected as a queue).
+
+__binary__ on:< boolean > - If true, all enqueued items will be stored as binary data.
+
+__type__ type:< string > - All data enqueued items will have the associated type.
+
+__enqueue__ item:< object > Enqueues an item.
+
+__dequeue__ full: < boolean > -> item:<object>
+Dequeues an item. Add full parameter to get full stored objet.[Partially IMPLEMENTED]
+
+__dequeuepeek__ [full:< boolean>] -> item:<object>
+Dequeues an item without removing it. Add full parameter to get full stored objet. [NOT IMPLEMENTED]
+
+__pop__ [full: < boolean >] -> item:<object>
+Pops an item.  Add full parameter to get full stored objet. [Partially IMPLEMENTED]
+
+__poppeek__ [full: < boolean >] -> item:<object>
+Pops an item without removing.  Add full parameter to get full stored objet.
+    [NOT IMPLEMENTED]
+
+__subscribe__
+Toggles socket's subscriptions attribute. Subscribed sockets will recieve an empty message when an item is added to the database through this server. Subscriber will not receive notifications for other items added through other server servers or methods.
+
+__queue__ [type:<string> binary-on:<boolean>]
+
+Following this command, all further messages will be saved as objects
+
+Example: Enqueue and HTML title (set the type first)
+
+```
+wscat -c http://127.0.0.1:8080/html/snippits
+>type text/html
+>enqueue <h1>THIS IS A TITLE</h2>
+>
+```
+
+Example: Subscribe to channel and pop last added item
+
+```
+wscat -c http://127.0.0.1:8080/html/snippits
+>subscribe
+   < true
+>pop
+   < <h2>Chapter 2<h2/>
+```
+
 ##Setting Options
+
+###Commandline Options
+Set these options from the commandline
 
 ```
 Options:
@@ -164,6 +380,10 @@ Options:
     --mongourl          MongoDB database full URL. Overwrites all other MongoDB related fields if set.
 ```
 
+###Environment
+
+Set these options in your environment
+
 If not set on the command line, the following options may set as environmental variables.
 
 - PORT
@@ -184,4 +404,6 @@ If not set on the command line, the following options may set as environmental v
 
 Any unset environmental variable may be set from a .env file that you create in the root directory.
 
-Some Settings may be set during run time by sending a PATCH request to the server. (See API)
+###Runtime
+
+Some Settings may be set during run time by sending a PATCH request to the server. (See API above)
