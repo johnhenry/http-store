@@ -380,6 +380,7 @@ wscat -c http://127.0.0.1:8080/html/snippits
 ###Commandline Options
 Set these options from the commandline
 
+
 ```
 Options:
     -v, --verbose       Print verbose output to the command line.
