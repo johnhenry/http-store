@@ -15,6 +15,9 @@
     (In addition to toggle)
  + Modified socket queue command - order of arguments is now reversed
  + Modified socket attribute behavior - will always return a non-empty string to indicate status
+ + Modified command line arguments: --unsafe-get, --no-peek, and --capture-headers are now boolean
+ + Updated Documentation
+
 
 ###0.0.1
 

@@ -7,6 +7,9 @@ var argv = require('yargs')
     .boolean("verbose", false)
     .alias("v","verbose")
     .alias("p","port")
+    .boolean("unsafe-get", false)
+    .boolean("no-peek", false)
+    .boolean("capture-headers", false)
     .boolean("enable-env-file", true)
     .alias("e","enable-env-file")
     .alias("f","env-file")
@@ -403,9 +406,9 @@ var socketConnection = function(socket) {
             case "pop":
                 //Remove Item From of Queue/Stack
                 //dedueue/pop <peek=false> <full=false> <index=0>
-                var p = isSetTrue(message[0], peek);
-                var f = isSetTrue(message[1], full);
-                var index = isInt(message[2])? Number(message[2]) : 0;
+                var index = isInt(message[0]) ? Number(message[0]) : 0;
+                var p = isSetTrue(message[1], peek);
+                var f = isSetTrue(message[2], full);
                 var order = command === "dequeue" ? 1 : -1;
                 getPromise(db.collection(collectionName),
                     key, order, index, !p).then(function(result){

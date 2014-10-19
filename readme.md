@@ -310,17 +310,7 @@ wscat -c http://127.0.0.1:8080/integers/primes
 
 When connecting, you may attach the following attributes to a url to specify a socket's attributes:
 
-- ?enqueue= < object >  - object sent at beginning of connection. (See Commands)
-- ?binary=true          - items enqueued on this channel will be stored as binary data (See Commands)
-- ?type= < string >     - items enqueued will be stored with type type (See Commands)
-- ?queue=true           - makes the socket a queue (See Commands)
-
-- ?peek=true            - items dequed/popped will remain in the database (See Commands)
-- ?full=true            - full items will be dequed/popped - not just their values (See Commands)
-- ?subscribe=true       - subscribes the socket to updates (See Commands)
-
-
-
+In addition, you may attach a number of attributes to the url via url parameters.
 
 Example: Connect to a web socket with the subscribe set
 
@@ -337,28 +327,55 @@ wscat -c http://127.0.0.1:8080/integers/primes?queue=true
 >5
 ```
 
-These may also be set with commands (See Commands immediately below.)
+Example: Connect to a web socket as a queue and immediately send three numbers
+
+```
+wscat -c http://127.0.0.1:8080/integers/primes?queue=true
+>2
+>3
+>5
+```
+
+Example: Connect to a web socket as a queue and immediately send three numbers
+
+```
+wscat -c http://127.0.0.1:8080/integers/primes?subscribe=true\&peek=true\&
+>
+    <
+>pop
+```
+
+Note: There's a "\" preceding the "&" in the address. This is only necessary in environments where "&" must be escaped (ususually command lines)
+
+
+The available parameters are similar in naming and function to the commands below:
 
 ####Commands
 
 You can send the following commands once connected (if not connected as a queue).
 
-__binary__ on:< boolean > - If true, all enqueued items will be stored as binary data.
+#####Enqueue Commands
+__enqueue__ item:< object > - Send an item on the socket. Note: When used as a url parameter, the item will be enqueued upon connection and connection will continue normally.
 
-__type__ type:< string > - All data enqueued items will have the associated type.
+__queue__ [binary-on:<boolean> type:<string>] - Transforms socket into a queue. Each further message sent on socket will be enqueued in its entirety. Note, if used as a url parameter (?queue=true), the socket will be unable to accept further commands.
 
-__enqueue__ item:< object > Enqueues an item.
+__binary__ [binary:< boolean >] - Toggles whether or not to encode the data sent on this socket. Use before __enqueue__ or __queue__
 
-__dequeue__ [peek: < boolean=false > full: < boolean > index: < uint >]-> item:<object>
-Dequeues an item. Add full parameter to get full stored objet.
+__type__ type:< string > - Set the default type for data sent on this socket. Use before __euqueue__ or __queue__.
 
-__pop__ [peek: < boolean=false >  full: < boolean > index: < uint >] -> item:<object>
-Pops an item.  Add full parameter to get full stored objet.
 
-__subscribe__ [subscribe:<boolean>]
-Toggles socket's subscriptions attribute. Subscribed sockets will recieve an empty message when an item is added to the database through this server. Subscriber will not receive notifications for other items added through other server servers or methods.
+#####Dequeue Commands
+__subscribe__ [subscribe:<boolean>] Toggles whether or not an update is sent whenever an item is enqueue on this server
 
-__queue__ [binary-on:<boolean> type:<string>]
+__dequeue__ [index: < uint > peek: < boolean=false > full: < boolean > ]
+    Dequeues an item. Note: cannot be used as a url parameter.
+
+__pop__ [index: < uint > peek: < boolean=false >  full: < boolean > ]
+    Pops an item. Note: cannot be used as a url parameter.
+
+__full__ [full:< boolean >] - Toggles whether or not to receive the full stored object or just the stored value property. Use before __dequeue__ or __pop__.
+
+__peek__ [full:< boolean >] - Toggles whether or not to remove the object from the database when received. Use before __dequeue__ or __pop__.
 
 Following this command, all further messages will be saved as objects
 
@@ -367,7 +384,7 @@ Example: Enqueue and HTML title (set the type first)
 ```
 wscat -c http://127.0.0.1:8080/html/snippits
 >type text/html
->enqueue <h1>THIS IS A TITLE</h2>
+>enqueue <h1>THIS IS A TITLE</h1>
 >
 ```
 
@@ -392,12 +409,11 @@ Options:
     -v, --verbose       Print verbose output to the command line.
     -p, --port          Listening port for HTTP requests.
     --charset           Default encoding for stored objects.
-    --bodylimit         Limit of body to read.
-    --dequeueinterval   Dequeue interval for connected sockets.
-    --popinterval       Pop interval for connected sockets.
-    --basetype          Default type assigned to stored objects.
-    --unsafeget         Enables removal of items through GET get method by appending "?dequeue=true" to url if set.
-    --captureheaders    Capture and store all headers along with body.
+    --body-limit        Limit of body to read.
+    --base-type         Default type assigned to stored objects.
+    --no-peek
+    --unsafe-get        Enables removal of items through GET get method by appending "?dequeue=true" to url if set.
+    --capture-headers   Capture and store all headers along with body.
     --mongoprotocol     Protocol for connecting to mongo host.
     --mongohost         MongoDB database host.
     --mongouser         MongoDB database user name.
@@ -416,11 +432,10 @@ If not set on the command line, the following options may set as environmental v
 - PORT
 - CHARSET
 - BODYLIMIT
-- CAPTUREHEADERS
-- DEQUEUEINTERVAL
-- POPINTERVAL
-- BASETYPE
 - UNSAFEGET
+- CAPTUREHEADERS
+- NOPEEK
+- BASETYPE
 - MONGOPROTOCOL
 - MONGOUSER
 - MONGOPASS
