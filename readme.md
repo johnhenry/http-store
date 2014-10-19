@@ -411,9 +411,9 @@ Options:
     --charset           Default encoding for stored objects.
     --body-limit        Limit of body to read.
     --base-type         Default type assigned to stored objects.
-    --no-peek
-    --unsafe-get        Enables removal of items through GET get method by appending "?dequeue=true" to url if set.
-    --capture-headers   Capture and store all headers along with body.
+    --(no-)peek         If set as false, all Get request to data base remove item.
+    --(no-)unsafe-get   Enables removal of items through GET get method by appending "?dequeue=true" to url if set.
+    --(no-)capture-headers   Capture and store all headers along with body.
     --mongoprotocol     Protocol for connecting to mongo host.
     --mongohost         MongoDB database host.
     --mongouser         MongoDB database user name.

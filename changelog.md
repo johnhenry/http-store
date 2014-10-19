@@ -2,6 +2,10 @@
 
 ##Changelog
 
+###0.1.1
+    Fixed - Peeking functionality now works as documented
+    Fixed - Default command line arguments working much better
+
 ###0.1.0
 
  + Modified socket dequeue API to allow peeking

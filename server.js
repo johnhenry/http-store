@@ -4,18 +4,22 @@
 //Initial Command Line Stuff
 ////
 var argv = require('yargs')
-    .boolean("verbose", false)
     .alias("v","verbose")
     .alias("p","port")
-    .boolean("unsafe-get", false)
-    .boolean("no-peek", false)
-    .boolean("capture-headers", false)
-    .boolean("enable-env-file", true)
+    .boolean("verbose")
+    .default("verbose", false)
+    .boolean("unsafe-get")
+    .default("unsafe-get", false)
+    .boolean("peek")
+    .default("peek", true)
+    .boolean("capture-headers")
+    .default("capture-headers", false)
+    .boolean("enable-env-file")
+    .default("enable-env-file", true)
     .alias("e","enable-env-file")
     .alias("f","env-file")
     .argv
 var LOG = argv.verbose ? console.log : function(){};
-
 ////
 //Imports
 ////
@@ -25,7 +29,6 @@ var mongodb = require('mongodb');
 var q = require('q');
 var express = require('express');
 var rawbody = require('raw-body');
-
 ////
 //Options
 ////
@@ -34,7 +37,7 @@ var rawbody = require('raw-body');
 if(argv["enable-env-file"]){
     var envFile = (argv["env-file"]) || __dirname + '/.env';
     try{
-        require('node-env-file')();
+        require('node-env-file')(envFile);
         LOG("Additional Environment Variables Loaded from: ", envFile);
     }catch(e){
         LOG("No Enviornemnt file ("+envFile+") found.", e);
@@ -56,29 +59,6 @@ var isSetFalse = function(value, alt){
     : String(value).toLowerCase() !== "true" ? alt
     : false
 }
-//Set options based on environmental variables
-var OPTIONS = {
-    PORT : argv.port || process.env.PORT || 8080,
-    BASETYPE : argv.basetype || process.env.CHARSET | "text/plain",
-    CHARSET : argv.charset || process.env.CHARSET || "utf-8",
-    BODYLIMIT : argv.bodylimit || process.env.BODYLIMIT || "16mb",
-    UNSAFEGET : argv.unsafeget || !!process.env.UNSAFEGET || false,
-    CAPTUREHEADERS : argv.captureheaders
-        || process.env.CAPTUREHEADERS || false,
-    NOPEEK : argv.nopeek || !!process.env.NOPEEK || false,
-    MONGOURL: argv.mongourl
-        || (argv.mongourl || process.env.MONGOURL)
-        || (argv.mongoprotocol || process.env.MONGOPROTOCOL || "mongodb") + "://"
-        + (argv.mongouser || process.env.MONGOUSER || "") + ":"
-        + (argv.mongopass || process.env.MONGOPASS || "") + "@"
-        + (argv.mongohost || process.env.MONGOHOST || "127.0.0.1") +":"
-        + (argv.mongoport || process.env.MONGOPORT || 27017) + "/"
-        + (argv.mongobase || process.env.MONGOBASE || "")
-}
-
-////
-//Application
-////
 
 var router = express.Router();
 var MongoClient = mongodb.MongoClient;
@@ -90,6 +70,37 @@ var app = express();
 var channels = {
     subscribe : {}
 };
+
+//Set options based on environmental variables
+var OPTIONS = {
+    PORT : argv.port || process.env.PORT || 8080,
+    BASETYPE : argv.basetype || process.env.CHARSET | "text/plain",
+    CHARSET : argv.charset || process.env.CHARSET || "utf-8",
+    BODYLIMIT : argv.bodylimit || process.env.BODYLIMIT || "16mb",
+    UNSAFEGET : isSetTrue(argv["unsafe-get"])
+        || isSetTrue(process.env.UNSAFEGET)
+        || false,
+    CAPTUREHEADERS : isSetTrue(argv["capture-headers"])
+        || isSetTrue(process.env.CAPTUREHEADERS)
+        || false,
+    PEEK : isSetFalse(argv["peek"]) ? false
+            : isSetFalse(process.env.PEEK) ? false
+            : true,
+    MONGOURL: argv.mongourl
+        || (argv.mongourl || process.env.MONGOURL)
+        || (argv.mongoprotocol
+            || process.env.MONGOPROTOCOL
+            || "mongodb") + "://"
+        + (argv.mongouser || process.env.MONGOUSER || "") + ":"
+        + (argv.mongopass || process.env.MONGOPASS || "") + "@"
+        + (argv.mongohost || process.env.MONGOHOST || "127.0.0.1") +":"
+        + (argv.mongoport || process.env.MONGOPORT || 27017) + "/"
+        + (argv.mongobase || process.env.MONGOBASE || "")
+}
+////
+//Application
+////
+
 var setOptions = function(opts, first){
     var diff = {};
     if(opts.BASETYPE !== undefined){
@@ -120,12 +131,12 @@ var setOptions = function(opts, first){
         }
         OPTIONS.UNSAFEGET = diff.UNSAFEGET.new;
     }
-    if(opts.NOPEEK !== undefined){
-        diff.NOPEEK = {
-            old : OPTIONS.NOPEEK,
-            new : !!opts.NOPEEK
+    if(opts.PEEK !== undefined){
+        diff.PEEK = {
+            old : OPTIONS.PEEK,
+            new : !!opts.PEEK
         }
-        OPTIONS.NOPEEK = diff.NOPEEK.new;
+        OPTIONS.PEEK = diff.PEEK.new;
     }
     if(opts.CAPTUREHEADERS !== undefined){
         diff.CAPTUREHEADERS = {
@@ -329,8 +340,7 @@ var socketConnection = function(socket) {
     collectionkey = collectionName + "/" + key;
     var query = path.query;
     var queue = isSetTrue(query.queue);//?queue=
-    var peek = isSetTrue(query.peek);//?peek=
-    if(OPTIONS.NOPEEK) peek = false;
+    var peek = isSetTrue(query.peek) && OPTIONS.PEEK;//?peek=
     var full = isSetTrue(query.full);//?full=
     var binary = isSetTrue(query.binary);//?binary=
     var type = query.type || "";//?type=
@@ -429,7 +439,7 @@ var socketConnection = function(socket) {
                 if(isSetTrue(p)) peek = true;
                 else if(isSetFalse(p)) peek = false;
                 else peek = !peek;
-                if(OPTIONS.NOPEEK) peek = false;
+                peek = peek && OPTIONS.PEEK;
                 socket.send(peek ? "+peek" : "-peek");
                 break;
             case "full":
@@ -513,8 +523,9 @@ var getFunc = function(request, response){
         (request.method === "DELETE"
         || (OPTIONS.UNSAFEGET && isSetTrue(request.query.dequeue)))
         && (request.method !== "HEAD");
-    if(OPTIONS.NOPEEK
-        && OPTIONS.UNSAFEGET && request.method === "GET") remove = true;
+        if(!OPTIONS.PEEK
+             && OPTIONS.UNSAFEGET
+             && request.method === "GET") remove = true;
     var respond = request.method === "GET"
         || request.method === "HEAD"
         || isSetTrue(request.query.dequeue)
