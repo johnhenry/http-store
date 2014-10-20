@@ -153,11 +153,11 @@ Send a json object similar to the following to change settings at run time. Unse
 ```
 {
     "CHARSET": <string>,
-    "BASETYPE":<string>,
-    "BODYLIMIT":<string>,
-    "UNSAFEGET":<boolean>,
+    "BASETYPE": <string>,
+    "BODYLIMIT": <string>,
+    "UNSAFEGET": <boolean>,
     "DEQUEUEINTERVAL": <unsigned integer>,
-    "POPINTERVAL" <unsigned integer>,
+    "POPINTERVAL": <unsigned integer>,
 }
 ```
 
@@ -355,27 +355,29 @@ The available parameters are similar in naming and function to the commands belo
 You can send the following commands once connected (if not connected as a queue).
 
 #####Enqueue Commands
-__enqueue__ item:< object > - Send an item on the socket. Note: When used as a url parameter, the item will be enqueued upon connection and connection will continue normally.
+__enqueue__ item < object > - Send an item on the socket. Note: When used as a url parameter, the item will be enqueued upon connection and connection will continue normally.
 
-__queue__ [binary-on:<boolean> type:<string>] - Transforms socket into a queue. Each further message sent on socket will be enqueued in its entirety. Note, if used as a url parameter (?queue=true), the socket will be unable to accept further commands.
+__queue__ [binary-on <boolean> type <string>] - Transforms socket into a queue. Each further message sent on socket will be enqueued in its entirety. Note, if used as a url parameter (?queue=true), the socket will be unable to accept further commands.
 
-__binary__ [binary:< boolean >] - Toggles whether or not to encode the data sent on this socket. Use before __enqueue__ or __queue__
+__binary__ [binary < boolean >] - Toggles whether or not to encode the data sent on this socket. Use before __enqueue__ or __queue__
 
-__type__ type:< string > - Set the default type for data sent on this socket. Use before __euqueue__ or __queue__.
+__type__ type < string > - Set the default type for data sent on this socket. Use before __euqueue__ or __queue__.
 
 
 #####Dequeue Commands
-__subscribe__ [subscribe:<boolean>] Toggles whether or not an update is sent whenever an item is enqueue on this server
+__subscribe__ [subscribe <boolean>] Toggles whether or not an update is sent whenever an item is enqueue on this server
 
-__dequeue__ [index: < uint > peek: < boolean=false > full: < boolean > ]
+__dequeue__ [index < uint > peek < boolean=false > full < boolean > broadcast < boolean >]
     Dequeues an item. Note: cannot be used as a url parameter.
 
-__pop__ [index: < uint > peek: < boolean=false >  full: < boolean > ]
+__pop__ [index < uint > peek < boolean=false > full < boolean > broadcast < boolean >]
     Pops an item. Note: cannot be used as a url parameter.
 
-__full__ [full:< boolean >] - Toggles whether or not to receive the full stored object or just the stored value property. Use before __dequeue__ or __pop__.
+__full__ [full < boolean >] - Toggles whether or not to receive the full stored object or just the stored value property. Use before __dequeue__ or __pop__.
 
-__peek__ [full:< boolean >] - Toggles whether or not to remove the object from the database when received. Use before __dequeue__ or __pop__.
+__peek__ [peek < boolean >] - Toggles whether or not to remove the object from the database when received. Use before __dequeue__ or __pop__.
+
+
 
 Following this command, all further messages will be saved as objects
 
@@ -411,6 +413,12 @@ Options:
     --charset           Default encoding for stored objects.
     --body-limit        Limit of body to read.
     --base-type         Default type assigned to stored objects.
+    --static            Serve files in static folder at "<server address>/"
+                            false - do not host static files
+                            true  - server static files if no http-store resource exists
+                            override - serve static files
+                                    static files will appear before http-store resources
+
     --(no-)peek         If set as false, all Get request to data base remove item.
     --(no-)unsafe-get   Enables removal of items through GET get method by appending "?dequeue=true" to url if set.
     --(no-)capture-headers   Capture and store all headers along with body.
@@ -432,9 +440,10 @@ If not set on the command line, the following options may set as environmental v
 - PORT
 - CHARSET
 - BODYLIMIT
+- STATIC
+- PEEK
 - UNSAFEGET
 - CAPTUREHEADERS
-- NOPEEK
 - BASETYPE
 - MONGOPROTOCOL
 - MONGOUSER

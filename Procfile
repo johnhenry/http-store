@@ -1,1 +1,1 @@
-web: node server.js -v --no-e
+web: node server.js -v --no-e --static

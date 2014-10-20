@@ -2,6 +2,9 @@
 
 ##Changelog
 
+###0.1.2
+    Added ability to host static files
+
 ###0.1.1
     Fixed - Peeking functionality now works as documented
     Fixed - Default command line arguments working much better

@@ -8,6 +8,7 @@ var argv = require('yargs')
     .alias("p","port")
     .boolean("verbose")
     .default("verbose", false)
+    .default("static")
     .boolean("unsafe-get")
     .default("unsafe-get", false)
     .boolean("peek")
@@ -24,6 +25,7 @@ var LOG = argv.verbose ? console.log : function(){};
 //Imports
 ////
 var url = require('url');
+var fs = require('fs');
 var WS = require('ws').Server;
 var mongodb = require('mongodb');
 var q = require('q');
@@ -77,16 +79,19 @@ var OPTIONS = {
     BASETYPE : argv.basetype || process.env.CHARSET | "text/plain",
     CHARSET : argv.charset || process.env.CHARSET || "utf-8",
     BODYLIMIT : argv.bodylimit || process.env.BODYLIMIT || "16mb",
+    STATIC : isSetTrue(argv["static"]) ? true
+            : String(argv["static"]).toLowerCase() === "override"  ? "override"
+            : false,
+    PEEK : isSetFalse(argv["peek"]) ? false
+            : isSetFalse(process.env.PEEK) ? false
+            : "true",
     UNSAFEGET : isSetTrue(argv["unsafe-get"])
         || isSetTrue(process.env.UNSAFEGET)
         || false,
     CAPTUREHEADERS : isSetTrue(argv["capture-headers"])
         || isSetTrue(process.env.CAPTUREHEADERS)
         || false,
-    PEEK : isSetFalse(argv["peek"]) ? false
-            : isSetFalse(process.env.PEEK) ? false
-            : true,
-    MONGOURL: argv.mongourl
+    MONGOURL : argv.mongourl
         || (argv.mongourl || process.env.MONGOURL)
         || (argv.mongoprotocol
             || process.env.MONGOPROTOCOL
@@ -474,12 +479,34 @@ var socketConnection = function(socket) {
 //Helpers
 ////
 
-var render = function(response, obj, status){
-    response.status(status || 200);
-    if(obj._id) response.setHeader("ETag", obj._id);
-    if(obj.type) response.setHeader("Content-Type", obj.type);
-    response.send(obj.value);
-    LOG("RENDER", obj);
+var render = function(response, obj, status, collectionName, key){
+    if(status === 404 && OPTIONS.STATIC){
+        var path = __dirname + "/static/" + collectionName + "/" + key;
+        fs.exists(path + "/index.html", function(yes){
+            if(yes){
+                response.sendFile(path + "/index.html");
+                LOG("RENDER", "static");
+            }else{
+                try{
+                    response.sendFile(__dirname + "/static/" + collectionName);
+                    LOG("RENDER", "static");
+                }catch(e){
+                    response.status(status).end();
+                    LOG("RENDER", "null");
+                }
+            }
+        })
+    }else if (status === 404){
+        response.status(status).end();
+        LOG("RENDER", "null");
+    }else{
+        response.status(status || 200);
+        if(obj._id) response.setHeader("ETag", obj._id);
+        if(obj.type) response.setHeader("Content-Type", obj.type);
+        response.send(obj.value);
+        LOG("RENDER", obj);
+    }
+
 }
 
 
@@ -562,9 +589,9 @@ var getFunc = function(request, response){
             obj._id = result._id;
             obj.type = result.type;
             obj.time = result.time;
-            render(response, obj, 200);
+            render(response, obj, 200, collectionName, key);
         }else{
-            render(response, obj, 404)
+            render(response, obj, 404, collectionName, key)
         }
     }
     if(respond){
@@ -615,7 +642,7 @@ var putFunc = function(request, response){
     var createObject = function(){
         return insertPromise(collection, obj)
             .then(function(result){
-                LOG("PUT", result);
+                LOG("PUT", result[0]);
                 return q(result);
             }).fail(function(e){
                 LOG("GET FAILURE", e);
@@ -625,8 +652,7 @@ var putFunc = function(request, response){
     var renderObject = function(result){
         result = result[0];
         obj._id = result._id;
-        LOG("PUT", obj);
-        render(response, obj, 201);
+        render(response, obj, 200, collectionName, key);
     }
     if(remove){
         deletePreviousObjects()
@@ -670,9 +696,12 @@ router.head("/:collectionName/:key", getFunc);
 router.put("/:collectionName/:key", putFunc);
 router.post("/:collectionName/:key", putFunc);
 router.trace("/:collectionName/:key", traceFunc);
-
 router.patch("/", patchFunc);
-app.use('/', router)
+if(OPTIONS.STATIC === "override")
+    app.use(express.static(__dirname + "/static"));
+app.use('/', router);
+if(OPTIONS.STATIC)
+    app.use(express.static(__dirname + "/static"));
 
 //Disconnect Mongo Client
 MongoClient.connect(
