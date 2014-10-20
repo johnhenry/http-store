@@ -2,6 +2,9 @@
 
 ##Changelog
 
+###0.2.4
++ Fixed - No response type returned on DELETE (dequeue is not true)
+
 ###0.2.3
 + Added ability to load files into sample application.
 

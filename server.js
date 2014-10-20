@@ -599,7 +599,6 @@ var getFunc = function(request, response){
     };
     var index = isInt(request.query.index) ? Number(request.query.index) : 0;
     var order = isSetTrue(request.query.pop) ? -1 : 1;
-
     var remove =
         (request.method === "DELETE"
         || (OPTIONS.UNSAFEGET && isSetTrue(request.query.dequeue)))
@@ -659,6 +658,9 @@ var getFunc = function(request, response){
     }else{
         removeAllPromise(collection, key)
             .then(function(){
+                delete obj.type;
+                delete obj.value;
+                delete obj._id
                 render(response, obj, 410);
             })
     }
