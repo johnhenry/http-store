@@ -529,10 +529,6 @@ var socketConnection = function(socket) {
 ////
 //Helpers
 ////
-condition.use(function(value, success, failure){
-    if(value) success();
-    failure();
-})
 
 var render = function(response, obj, status, collectionName, key){
     if(status === 404 && OPTIONS.STATIC){
