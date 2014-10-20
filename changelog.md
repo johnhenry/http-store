@@ -2,6 +2,10 @@
 
 ##Changelog
 
+###0.2.0
+    Modified _socket subscribe_. Channel will now receive updated object when ever publically dequeued/popped by another subscriber.
+    Added _socket listen_ to replace previous subscribe functionality
+
 ###0.1.2
     Added ability to host static files
 

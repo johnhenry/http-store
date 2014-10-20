@@ -70,6 +70,7 @@ var wss;
 var db;
 var app = express();
 var channels = {
+    listen : {},
     subscribe : {}
 };
 
@@ -184,7 +185,7 @@ var removeOnePromise = function (collection, id){
     return d.promise;
 }
 
-var getPromise = function (collection, key, order, index, remove){
+var getPromise = function (collection, key, order, index, remove, skip){
     var d = q.defer();
     var callback = function(error, result){
         if(error) d.reject(error);
@@ -192,20 +193,31 @@ var getPromise = function (collection, key, order, index, remove){
             if(error) d.reject(error);
             if(!result.length) d.reject(result);
             result = result[0];
+            if(result && result.value && result.value.buffer){
+                result.value = result.value.buffer;
+            }
             if(!remove || !result || !result._id) {
                 if(!result || !result._id){
                     d.reject(result);
                     return;
                 }
+                pushUpdate(collection.collectionName + "/" + key,
+                    result, skip);
                 d.resolve(result);
                 return;
             }
             removeOnePromise(collection, result._id)
                 .then(function(){
+                    pushUpdate(collection.collectionName + "/" + key,
+                    result, skip);
                     d.resolve(result);
+
                 }).fail(function(){
+                    pushUpdate(collection.collectionName + "/" + key,
+                        result, skip);
                     d.resolve(result);
                 })
+            return;
         })
     }
     collection.find(
@@ -315,11 +327,24 @@ var removeFromAllChannels = function(socket){
 }
 
 var insertUpdate = function(collectionkey, id){
-    var sockets = channels.subscribe[collectionkey] || [];
+    var sockets = channels.listen[collectionkey] || [];
     sockets.forEach(function(socket){
         socket.send();
     })
 }
+var pushUpdate = function(collectionkey, obj, skip){
+    var sockets = channels.subscribe[collectionkey] || [];
+    sockets.forEach(function(socket){
+        if(socket !== skip){
+            if(socket.att.full){
+                socket.send(JSON.stringify(obj));
+            }else{
+                socket.send(obj.value)
+            }
+        }
+    })
+}
+
 var placeOnChannel = function(collection, key, message, type, binary){
     var obj = {
         key : key,
@@ -344,18 +369,23 @@ var socketConnection = function(socket) {
     }
     collectionkey = collectionName + "/" + key;
     var query = path.query;
-    var queue = isSetTrue(query.queue);//?queue=
-    var peek = isSetTrue(query.peek) && OPTIONS.PEEK;//?peek=
-    var full = isSetTrue(query.full);//?full=
-    var binary = isSetTrue(query.binary);//?binary=
-    var type = query.type || "";//?type=
+    socket.att = {};
+    socket.att.queue = isSetTrue(query.queue);//?queue=
+    socket.att.peek = isSetTrue(query.peek) && OPTIONS.PEEK;//?peek=
+    socket.att.full = isSetTrue(query.full);//?full=
+    socket.att.binary = isSetTrue(query.binary);//?binary=
+    socket.att.public = isSetTrue(query.public);//?public=
+    socket.att.type = query.type || "";//?type=
+    if(isSetTrue(query.listen)){
+        addToChannel("listen", collectionkey, socket);
+    }
     if(isSetTrue(query.subscribe)){
         addToChannel("subscribe", collectionkey, socket);
     }
     if(query.enqueue !== undefined){
         placeOnChannel(
             db.collection(collectionName),
-            key, query.enqueue, type, binary)
+            key, query.enqueue, socket.att.type, socket.att.binary)
             .then(function(result){
                 LOG("PUT", result[0]);
             })
@@ -366,10 +396,10 @@ var socketConnection = function(socket) {
     })
     socket.on("message", function(message){
         message = message || "";
-        if(queue){
+        if(socket.att.queue){
             placeOnChannel(
                 db.collection(collectionName),
-                key, message, type, binary)
+                key, message, socket.att.type, socket.att.binary)
                 .then(function(result){
                     LOG("PUT", result[0]);
                 })
@@ -385,7 +415,7 @@ var socketConnection = function(socket) {
                 message = message.join(" ");
                 var p = placeOnChannel(
                     db.collection(collectionName),
-                    key, message, type, binary);
+                    key, message, socket.att.type, socket.att.binary);
                     p.then(function(result){
                         LOG("PUT", result[0]);
                     })
@@ -393,14 +423,14 @@ var socketConnection = function(socket) {
             case "binary":
                 //Set Enqueue Encoding
                 //binary <boolean>
-                binary = isSetTrue(message[0], !binary);
-                socket.send(binary ? "+binary" : "-binary");
+                binary = isSetTrue(message[0], !socket.att.binary);
+                socket.send(socket.att.binary ? "+binary" : "-binary");
                 break;
             case "type":
                 //Set Enqueue Type
                 //type <type>
-                type = message[0];
-                socket.send(type);
+                socket.att.type = message[0];
+                socket.send(socket.att.type);
                 break;
             case "queue":
                 //Converts sockets such that all further messages will
@@ -408,13 +438,15 @@ var socketConnection = function(socket) {
                 //messages
                 //queue <binary> <type>)
                 //all further messages will be enqueued
-                queue = true;
+                socket.att.queue = true;
                 binary = isSetTrue(message[0], binary);
-                type = message[1] || type;
+                public = isSetTrue(message[1], public);
+                type = message[2] || type;
                 socket.send(
-                    "+queue "
-                    + (binary ? "+binary" : "-binary")
-                    + " " + type);
+                    "+queue"
+                    + " " + (socket.att.binary ? "+binary" : "-binary")
+                    + " " + (socket.att.public ? "+public" : "-public")
+                    + " " + socket.att.type);
                 break;
             //Receiving
             case "dequeue":
@@ -422,39 +454,58 @@ var socketConnection = function(socket) {
                 //Remove Item From of Queue/Stack
                 //dedueue/pop <peek=false> <full=false> <index=0>
                 var index = isInt(message[0]) ? Number(message[0]) : 0;
-                var p = isSetTrue(message[1], peek);
-                var f = isSetTrue(message[2], full);
+                var p = isSetTrue(message[1], socket.att.peek);
+                var f = isSetTrue(message[2], socket.att.full);
+                var pub = isSetTrue(message[3], socket.att.public);
                 var order = command === "dequeue" ? 1 : -1;
                 getPromise(db.collection(collectionName),
-                    key, order, index, !p).then(function(result){
-                        if(result.value && result.value.buffer){
-                            result.value = result.value.buffer;
-                        }
+                    key, order, index, !p,
+                    pub ? socket : undefined).then(function(result){
+
                         if(f){
                             socket.send(JSON.stringify(result));
                         }else{
-                            socket.send(result.value)
+                            socket.send(result.value);
                         }
                     })
                 break;
             case "peek":
-                //Set Dequeue/Pop peek
-                //peek peek <boolean = true>
                 var p = message[0];
-                if(isSetTrue(p)) peek = true;
-                else if(isSetFalse(p)) peek = false;
-                else peek = !peek;
-                peek = peek && OPTIONS.PEEK;
-                socket.send(peek ? "+peek" : "-peek");
+                if(isSetTrue(p)) socket.att.peek = true;
+                else if(isSetFalse(p)) socket.att.peek = false;
+                else socket.att.peek = !socket.att.peek;
+                socket.att.peek = socket.att.peek && OPTIONS.PEEK;
+                socket.send(socket.att.peek ? "+peek" : "-peek");
+                break;
+            case "public":
+                var p = message[0];
+                if(isSetTrue(p)) socket.att.public = true;
+                else if(isSetFalse(p)) socket.att.public = false;
+                else socket.att.public = !socket.att.public;
+                socket.send(socket.att.public ? "+public" : "-public");
                 break;
             case "full":
-                //binary <boolean>
-                //full peek <boolean = true>
                 var f = message[0];
-                if(isSetTrue(f)) full = true;
-                else if(isSetFalse(f)) full = false;
-                else full = !full;
-                socket.send(full ? "+full" : "-full");
+                if(isSetTrue(f)) socket.att.full = true;
+                else if(isSetFalse(f)) socket.att.full = false;
+                else socket.att.full = !socket.att.full;
+                socket.send(socket.att.full ? "+full" : "-full");
+                break;
+            //Channels
+            case "listen":
+                var sub = message[0]
+                    if(isSetTrue(sub)){
+                        addToChannel("listen", collectionkey, socket);
+                        sub = true;
+                    }
+                    else if(isSetFalse(sub)){
+                        removeFromChannel("listen", collectionkey, socket);
+                        sub = false;
+                    }
+                    else
+                        sub =
+                        toggleChannel("listen", collectionkey, socket);
+                socket.send(sub ? "+listen" : "-listen");
                 break;
             case "subscribe":
                 var sub = message[0]
@@ -582,9 +633,6 @@ var getFunc = function(request, response){
     }
     var renderObject = function(result){
         if(result){
-            if(result.value && result.value.buffer){
-                result.value = result.value.buffer;
-            }
             obj.value = result.value;
             obj._id = result._id;
             obj.type = result.type;

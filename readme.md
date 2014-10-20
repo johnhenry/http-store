@@ -312,10 +312,10 @@ When connecting, you may attach the following attributes to a url to specify a s
 
 In addition, you may attach a number of attributes to the url via url parameters.
 
-Example: Connect to a web socket with the subscribe set
+Example: Connect to a web socket with the listen attribute set
 
 ```
-wscat -c http://127.0.0.1:8080/integers/primes?subscribe=true
+wscat -c http://127.0.0.1:8080/integers/primes?listen=true
 >
 ```
 Example: Connect to a web socket as a queue and immediately send three numbers
@@ -339,7 +339,7 @@ wscat -c http://127.0.0.1:8080/integers/primes?queue=true
 Example: Connect to a web socket as a queue and immediately send three numbers
 
 ```
-wscat -c http://127.0.0.1:8080/integers/primes?subscribe=true\&peek=true\&
+wscat -c http://127.0.0.1:8080/integers/primes?listen=true\&peek=true\&
 >
     <
 >pop
@@ -365,19 +365,32 @@ __type__ type < string > - Set the default type for data sent on this socket. Us
 
 
 #####Dequeue Commands
-__subscribe__ [subscribe <boolean>] Toggles whether or not an update is sent whenever an item is enqueue on this server
+__listen__ [listen <boolean>] Toggles whether or not an update is sent whenever an item is enqueue on this server
 
-__dequeue__ [index < uint > peek < boolean=false > full < boolean > broadcast < boolean >]
-    Dequeues an item. Note: cannot be used as a url parameter.
+__subscribe__ [subscribe <boolean>] Toggles whether or not an object is recieved whever is it dequeued/popped by another subscriber
 
-__pop__ [index < uint > peek < boolean=false > full < boolean > broadcast < boolean >]
-    Pops an item. Note: cannot be used as a url parameter.
+__dequeue__ [index peek full public]
+
+    Dequeues an item.
+
+    - _index_  - Index of item to remove (default 0)
+    - _peek_   - View item, but do not remove (default false)
+    - _full_   - Get full object instead of just value (default false)
+    - _public_ _ Push object to subscribed sockets (default false)
+
+    Note : Cannot be used as a command line argument.
+
+__pop__ [index peek full public]
+
+    Pops an item. See __dequeue__ (above) for parameter descriptions.
+
+    Note : Cannot be used as a command line argument
 
 __full__ [full < boolean >] - Toggles whether or not to receive the full stored object or just the stored value property. Use before __dequeue__ or __pop__.
 
 __peek__ [peek < boolean >] - Toggles whether or not to remove the object from the database when received. Use before __dequeue__ or __pop__.
 
-
+__public__ [peek < boolean >] - Toggles whether or not to push object to subscribed sockets. Use before __dequeue__ or __pop__.
 
 Following this command, all further messages will be saved as objects
 
@@ -390,11 +403,11 @@ wscat -c http://127.0.0.1:8080/html/snippits
 >
 ```
 
-Example: Subscribe to channel and pop last added item
+Example: Listen to channel and pop last added item
 
 ```
 wscat -c http://127.0.0.1:8080/html/snippits
->subscribe
+>listen
    < true
 >pop
    < <h2>Chapter 2<h2/>
