@@ -529,6 +529,10 @@ var socketConnection = function(socket) {
 ////
 //Helpers
 ////
+condition.use(function(value, success, failure){
+    if(value) success();
+    failure();
+})
 
 var render = function(response, obj, status, collectionName, key){
     if(status === 404 && OPTIONS.STATIC){
@@ -538,13 +542,15 @@ var render = function(response, obj, status, collectionName, key){
                 response.sendFile(path + "/index.html");
                 LOG("RENDER", "static");
             }else{
-                try{
-                    response.sendFile(__dirname + "/static/" + collectionName);
-                    LOG("RENDER", "static");
-                }catch(e){
-                    response.status(status).end();
-                    LOG("RENDER", "null");
-                }
+                fs.exists(path, function(yes){
+                    if(yes){
+                        response.sendFile(path);
+                        LOG("RENDER", "static");
+                    }else{
+                        response.status(status).end();
+                        LOG("RENDER", "null");
+                    }
+                });
             }
         })
     }else if (status === 404){
