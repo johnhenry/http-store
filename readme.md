@@ -175,7 +175,7 @@ Responds with the user's request.
 
 ####Clients
 
-There are a number of clients that support HTTP. I use curl in the examples because it comes pre-installed on most *nix machines, but there are other [graphical] clients available such as [Advanced REST Client](http://restforchrome.blogspot.com/http://restforchrome.blogspot.com/) and [Postman](http://www.getpostman.com/).
+There are a number of clients that support HTTP. I use curl in the examples because it comes pre-installed on most *nix machines, but there are other [graphical] clients available such as [Advanced REST Client](http://restforchrome.blogspot.com/) and [Postman](http://www.getpostman.com/).
 
 Also, please note that I haven't had any success uploading binary files through Advanced REST Client or Postman, but I have had success with curl.
 
@@ -195,7 +195,7 @@ Example: Insert an image
 ```
 curl -X PUT <server address>/flowers/rose.jpg -H "Content-Type: image/jpeg; charset=binary" --data-binary @/full/path/to/http-store/example/rose.jpg
 ```
-(Note the "@")
+Note: The "@" is necessary as is the full path.
 
 #### Retrieving
 

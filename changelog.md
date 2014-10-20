@@ -2,6 +2,9 @@
 
 ##Changelog
 
+###0.2.3
++ Added ability to load files into sample application.
+
 ###0.2.2
 + Added sample application in static directory
 + Fixed - portion of url following collection, including slashes, is now all
