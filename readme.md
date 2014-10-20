@@ -156,8 +156,8 @@ Send a json object similar to the following to change settings at run time. Unse
     "BASETYPE": <string>,
     "BODYLIMIT": <string>,
     "UNSAFEGET": <boolean>,
-    "DEQUEUEINTERVAL": <unsigned integer>,
-    "POPINTERVAL": <unsigned integer>,
+    "PEEK": <boolean>,
+    "CAPTUREHEADERS": <boolean>,
 }
 ```
 
