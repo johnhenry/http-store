@@ -229,12 +229,14 @@
                 <label>
                     File: <input type="file" id="file"/>
                 </label>
+                <br />
+                <br />
             </div>
             <label>
                 <button id="submit" type="button">Send</button>
             </label>
         </form>
-        <h4>Response</h4>
+        <h4>Response <a id="response-url" target="_blank"></a></h4>
         <div>
         Status : <span id="response-status"></span>
         <br /><br />
@@ -247,9 +249,14 @@
     <script ="encoding.js"></script>
         <script>
             var xmlhttp = new XMLHttpRequest();
+            var responseURL = "";
             xmlhttp.onreadystatechange=function(){
             if (xmlhttp.readyState==4)
                 {
+                    document.getElementById("response-url")
+                    .innerHTML = responseURL;
+                    document.getElementById("response-url")
+                    .href = responseURL;
                     document.getElementById("response-id")
                     .innerHTML=xmlhttp.getResponseHeader("ETag");
                     document.getElementById("response-type")
@@ -258,10 +265,14 @@
                     .innerHTML=xmlhttp.status;
                     document.getElementById("response-body")
                     .innerHTML=xmlhttp.responseText;
-                    console.log(xmlhttp)
+                    console.log(xmlhttp);
                 }
             }
             var send = function(){
+                document.getElementById("response-url")
+                .innerHTML = "";
+                document.getElementById("response-url")
+                .href = "";
                 var collection = document.getElementById("collection")
                     .value.split(" ").join(" ");
                 var key = document.getElementById("key")
@@ -295,12 +306,12 @@
                 for(k in queryHash){
                     if(queryHash[k]) query.push(k + "=" + queryHash[k]);
                 }
-                var url = "/" + collection + "/" + key;
+                responseURL = "/" + collection + "/" + key;
                 if(query.length){
-                    url += "?" + query.join("&");
+                    responseURL += "?" + query.join("&");
                 }
                 if(method === "PATCH") url = "/"
-                xmlhttp.open(method, url, false);
+                xmlhttp.open(method, responseURL, false);
                 xmlhttp.setRequestHeader("Content-type", type);
                 xmlhttp.send(body);
             }

@@ -2,6 +2,9 @@
 
 ##Changelog
 
+###0.2.5
++ Added request URL to sample application's response
+
 ###0.2.4
 + Fixed - No response type returned on DELETE (dequeue is not true)
 
