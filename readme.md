@@ -5,7 +5,7 @@ HTTP Key-Value Store on top of MongoDB
 
 ##Features
 - Connect to a MongoDB Instance using HTTP and Web Sockets
-- Due and dequeue data in a simple
+- Already Compatible with zillions of applications and devices that already speak these standards
 
 
 ##Deploy

@@ -1,13 +1,235 @@
-<h2>
-    <a href="https://github.com/johnhenry/http-store" target="_blank">HTTP Store</a>
-</h2>
+<html>
+    <head>
+        <title>HTTP Store</title>
+    </head>
+    <body>
+        <h2>
+            <a href="https://github.com/johnhenry/http-store" target="_blank">HTTP Store</a>
+        </h2>
+<hr />
+    <h3>Sample Application</h3>
+        <p>
+            Visit <a href="https://github.com/johnhenry/http-store" target="_blank">https://github.com/johnhenry/http-store</a> to learn more.
+        </p>
+        <h3>Request</h3>
+        <form>
+            <label>
+                    Method :
+                    <select id="method">
+                        <option value="GET" selected>GET</option>
+                        <option value="PUT">PUT</option>
+                        <option value="DELETE">DELETE</option>
+                        <option value="POST">POST</option>
+                        <option value="HEAD">HEAD</option>
+                        <option value="TRACE">TRACE</option>
+                        <option value="PATCH">PATCH</option>
+                    </select>
+            </label>
+            <p>
+                <label>
+                    Collection : <input id="collection">
+                </label>
+                <label>
+                    Key : <input id="key">
+                </label>
+            </p>
+            <p>
+                <label>
+                    Type :
+                    <select id="type">
+                        <option value="text/plain" selected>
+                            text/plain</option>
+                        <option value="text/html">
+                            text/html</option>
+                        <option value="application/json">
+                            application/json</option>
+                    </select>
+                </label>
+                <label>
+                    Alt-Type : <input id="alt-type">
+                </label>
+            </p>
+            <ul id="enqueue-box">
+                <li>
+                    <label>
+                        <input id="enqueue" type=checkbox> Enqueue?
+                    </label>
+                </li>
+            </ul>
+            <ul id="dequeue-box">
+                <li>
+                    <label title="Remove item">
+                        <input id="dequeue" type="checkbox"> Dequeue?
+                    </label>
+                </li>
+                <li>
+                    <label title="Start from end of list">
+                        <input id="pop" type="checkbox"> Pop?
+                    </label>
+                </li>
+                <li>
+                    <label>
+                        Index  <input id="index" type=number>
+                    </label>
+                </li>
+            </ul>
+            <div id="body-box">
+                <label>
+                    Body <br /><textarea id="body"></textarea>
+                </label>
+            </div>
+            <label>
+                <button id="submit" type="button">Send</button>
+            </label>
+        </form>
+        <h3>Response</h3>
+        <div>
+        Status : <span id="response-status"></span>
+        <br /><br />
+        Type : <span id="response-type"></span>
+        <br /><br />
+        ID : <span id="response-id"></span>
+        <br /><br />
+        Response : <pre id="response-body"></pre>
+        <div>
+        <a href="https://github.com/johnhenry/http-store" target="_blank">
+            <img style="position: absolute; top: 0; right: 0; border: 0;"
+            alt="Fork this on GitHub"
+            src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png">
+        </a>
+        <script>
+            var xmlhttp = new XMLHttpRequest();
+            xmlhttp.onreadystatechange=function(){
+            if (xmlhttp.readyState==4)
+                {
+                    document.getElementById("response-id")
+                    .innerHTML=xmlhttp.getResponseHeader("ETag");
+                    document.getElementById("response-type")
+                    .innerHTML=xmlhttp.getResponseHeader("Content-type");
+                    document.getElementById("response-status")
+                    .innerHTML=xmlhttp.status;
+                    document.getElementById("response-body")
+                    .innerHTML=xmlhttp.responseText;
+                    console.log(xmlhttp)
+                }
+            }
+            var send = function(){
+                var collection = document.getElementById("collection")
+                    .value.split(" ").join(" ");
+                var key = document.getElementById("key")
+                    .value.split(" ").join(" ");
+                var method =
+                        document.getElementById("method").value
+                if(!(key && collection) && method !== "PATCH")
+                    return alert("Please set collection and key.");
+                var type =
+                    document.getElementById("alt-type").value
+                        .split(" ").join(" ")
+                    || document.getElementById("type").value
 
-<p>
-    Visit <a href="https://github.com/johnhenry/http-store" target="_blank">https://github.com/johnhenry/http-store</a> to learn more.
-</p>
-
-<a href="https://github.com/johnhenry/http-store" target="_blank">
-    <img style="position: absolute; top: 0; right: 0; border: 0;"
-    alt="Fork this on GitHub"
-    src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png">
-</a>
+                var body = document.getElementById("body").value;
+                var queryHash = {
+                    enqueue : document
+                                .getElementById("enqueue")
+                    .checked? "true" : "",
+                    dequeue : document
+                                .getElementById("dequeue")
+                    .checked? "true" : "",
+                    pop : document
+                                .getElementById("pop")
+                    .checked? "true" : "",
+                    index : document
+                            .getElementById("index")
+                    .value ? document
+                            .getElementById("index").value : ""
+                }
+                var query = [];
+                for(k in queryHash){
+                    if(queryHash[k]) query.push(k + "=" + queryHash[k]);
+                }
+                var url = "/" + collection + "/" + key;
+                if(query.length){
+                    url += "?" + query.join("&");
+                }
+                if(method === "PATCH") url = "/"
+                xmlhttp.open(method, url, false);
+                xmlhttp.setRequestHeader("Content-type", type);
+                xmlhttp.send(body);
+            }
+            var changeMethod = function(){
+                var method = document.getElementById("method").value;
+                switch(method){
+                    case "PUT" :
+                    case "POST" :
+                        document
+                            .getElementById("dequeue")
+                            .checked = false
+                        document
+                            .getElementById("pop")
+                            .checked = false;
+                        document
+                            .getElementById("index")
+                            .checked = "";
+                        document
+                            .getElementById("body-box")
+                            .style.display = "block";
+                        document
+                            .getElementById("enqueue-box")
+                            .style.display = "block";
+                        document
+                            .getElementById("dequeue-box")
+                            .style.display = "none";
+                    break;
+                    case "PATCH" :
+                        document
+                            .getElementById("dequeue")
+                            .checked = false;
+                        document
+                            .getElementById("enqueue")
+                            .checked = false;
+                        document
+                            .getElementById("pop")
+                            .checked = false;
+                        document
+                            .getElementById("index")
+                            .checked = "";
+                        document.getElementById("collection")
+                            .value = "";
+                        document
+                            .getElementById("key")
+                            .value = "";
+                        document
+                            .getElementById("body-box")
+                            .style.display = "block";
+                        document
+                            .getElementById("enqueue-box")
+                            .style.display = "none";
+                        document
+                            .getElementById("dequeue-box")
+                            .style.display = "none";
+                        document
+                            .getElementById("type").value = "application/json"
+                    break;
+                    default :
+                        document
+                            .getElementById("enqueue")
+                            .checked = false;
+                        document
+                            .getElementById("body-box")
+                            .style.display = "none";
+                        document
+                            .getElementById("enqueue-box")
+                            .style.display = "none";
+                        document
+                            .getElementById("dequeue-box")
+                            .style.display = "block";
+                }
+            }
+            document.getElementById("submit")
+            .addEventListener("click", send);
+            document.getElementById("method")
+            .addEventListener("change", changeMethod);
+            changeMethod();
+        </script>
+    </body>
+</html>

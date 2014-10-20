@@ -590,6 +590,7 @@ var rawBody = function(request, response, next){
 var getFunc = function(request, response){
     var collectionName = request.params.collectionName;
     var key = request.params.key;
+    if(request.params[0]) key += request.params[0];
     var collection = db.collection(collectionName);
     var obj = {
         key : key,
@@ -668,6 +669,7 @@ var getFunc = function(request, response){
 var putFunc = function(request, response){
     var collectionName = request.params.collectionName;
     var key = request.params.key;
+    if(request.params[0]) key += request.params[0];
     var collection = db.collection(collectionName);
     var obj = {
         key : key,
@@ -677,8 +679,8 @@ var putFunc = function(request, response){
     }
     if(OPTIONS.CAPTUREHEADERS) obj.headers = request.headers;
     var remove = request.method === "POST" ?
-        isSetTrue(request.query.enqueue) :
-        !isSetFalse(request.query.enqueue);
+        isSetFalse(request.query.enqueue) :
+        !isSetTrue(request.query.enqueue);
     var deletePreviousObjects = function(){
         return removeAllPromise(collection, key)
             .then(function(deleted){
@@ -734,18 +736,22 @@ var patchFunc = function(request, response){
         time : Number(Date.now()),
         type : "application/json"
     }
-    obj.value = setOptions(JSON.parse(obj.value));
+    try{
+        obj.value = setOptions(JSON.parse(obj.value));
+    }catch(e){
+        obj.value = {};
+    }
     render(response, obj, 200);
 
 }
 
 app.use(rawBody);
-router.delete("/:collectionName/:key", getFunc);
-router.get("/:collectionName/:key", getFunc);
-router.head("/:collectionName/:key", getFunc);
-router.put("/:collectionName/:key", putFunc);
-router.post("/:collectionName/:key", putFunc);
-router.trace("/:collectionName/:key", traceFunc);
+router.delete("/:collectionName/:key*", getFunc);
+router.get("/:collectionName/:key*", getFunc);
+router.head("/:collectionName/:key*", getFunc);
+router.put("/:collectionName/:key*", putFunc);
+router.post("/:collectionName/:key*", putFunc);
+router.trace("/:collectionName/:key*", traceFunc);
 router.patch("/", patchFunc);
 if(OPTIONS.STATIC === "override")
     app.use(express.static(__dirname + "/static"));

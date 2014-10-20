@@ -2,19 +2,26 @@
 
 ##Changelog
 
+###0.2.2
++ Added sample application in static directory
++ Fixed - portion of url following collection, including slashes, is now all
++ Fixed - PATCH sent with empty no longer sends server error
+ part of the key
++ Fixed -- PUT enqueue parameter now works properly
+
 ###0.2.1
-    Fix Bug - malformed code
++ Fix Bug - malformed code
 
 ###0.2.0
-    Modified _socket subscribe_. Channel will now receive updated object when ever publicly dequeued/popped by another subscriber.
-    Added _socket listen_ to replace previous subscribe functionality
++ Modified _socket subscribe_. Channel will now receive updated object when ever publicly dequeued/popped by another subscriber.
++ Added _socket listen_ to replace previous subscribe functionality
 
 ###0.1.2
-    Added ability to host static files
++ Added ability to host static files
 
 ###0.1.1
-    Fixed - Peeking functionality now works as documented
-    Fixed - Default command line arguments working much better
+ + Fixed - Peeking functionality now works as documented
++ Fixed - Default command line arguments working much better
 
 ###0.1.0
 
