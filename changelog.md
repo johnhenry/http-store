@@ -2,6 +2,9 @@
 
 ##Changelog
 
+###0.2.7
++ Fixed - Non-public messages no longer go out to subscribers
+
 ###0.2.6
 + Added more documentation to sample application.
 + Fixed - No longer crashes when setting as queue.

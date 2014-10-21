@@ -334,7 +334,7 @@ var insertUpdate = function(collectionkey, id){
 }
 var pushUpdate = function(collectionkey, obj, skip){
     var sockets = channels.subscribe[collectionkey] || [];
-    sockets.forEach(function(socket){
+    if(skip) sockets.forEach(function(socket){
         if(socket !== skip){
             if(socket.att.full){
                 socket.send(JSON.stringify(obj));
