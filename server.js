@@ -656,11 +656,11 @@ var getFunc = function(request, response){
         }
     }else{
         removeAllPromise(collection, key)
-            .then(function(){
+            .then(function(result){
                 delete obj.type;
                 delete obj.value;
-                delete obj._id
-                render(response, obj, 410);
+                delete obj._id;
+                render(response, obj, result? 410 : 404)
             })
     }
 }
