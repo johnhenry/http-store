@@ -2,6 +2,11 @@
 
 ##Changelog
 
+###0.2.6
++ Added more documentation to sample application.
++ Fixed - No longer crashes when setting as queue.
++ Fixed - No longer crashes when setting binary.
+
 ###0.2.5
 + Added request URL to sample application's response
 

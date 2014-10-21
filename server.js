@@ -423,14 +423,14 @@ var socketConnection = function(socket) {
             case "binary":
                 //Set Enqueue Encoding
                 //binary <boolean>
-                binary = isSetTrue(message[0], !socket.att.binary);
+                socket.att.binary = isSetTrue(message[0], !socket.att.binary);
                 socket.send(socket.att.binary ? "+binary" : "-binary");
                 break;
             case "type":
                 //Set Enqueue Type
                 //type <type>
                 socket.att.type = message[0];
-                socket.send(socket.att.type);
+                socket.send("type " + socket.att.type);
                 break;
             case "queue":
                 //Converts sockets such that all further messages will
@@ -439,9 +439,9 @@ var socketConnection = function(socket) {
                 //queue <binary> <type>)
                 //all further messages will be enqueued
                 socket.att.queue = true;
-                binary = isSetTrue(message[0], binary);
-                public = isSetTrue(message[1], public);
-                type = message[2] || type;
+                socket.att.binary = isSetTrue(message[0], socket.att.binary);
+                socket.att.public = isSetTrue(message[1], socket.att.public);
+                socket.att.type = message[2] || socket.att.type;
                 socket.send(
                     "+queue"
                     + " " + (socket.att.binary ? "+binary" : "-binary")

@@ -15,8 +15,11 @@
         <p>Here are just a few:</p>
         <table border="1">
             <tr>
-                <th width="33%">
+                <th width="25%">
                     Application
+                </th>
+                <th>
+                    Type
                 </th>
                 <th>
                     HTTP Interface
@@ -27,6 +30,9 @@
                 <th>
                     Uploading Binary Files
                 </th>
+                <th>
+                    Other Notes
+                </th>
             </tr>
             <tr>
                 <td>
@@ -35,6 +41,9 @@
                     target="_blank">
                     curl
                     </a>
+                </td>
+                <td>
+                    Command Line Application
                 </td>
                 <td>
                     SUPPORTED
@@ -49,6 +58,9 @@
                     Example:<br />
                     curl -X PUT <server address>/flowers/rose.jpg -H "Content-Type: image/jpeg; charset=binary" --data-binary @/full/path/to/http-store/example/rose.jpg
                 </td>
+                <td>
+
+                </td>
             </tr>
             <tr>
                 <td>
@@ -58,6 +70,9 @@
                     </a>
                 </td>
                 <td>
+                    Command Line Application
+                </td>
+                <td>
                     SUPPORTED
                 </td>
                 <td>
@@ -65,6 +80,9 @@
                 </td>
                 <td>
                     NOT TESTED
+                </td>
+                <td>
+
                 </td>
             </tr>
             <tr>
@@ -75,6 +93,9 @@
                     </a>
                 </td>
                 <td>
+                    Command Line Application
+                </td>
+                <td>
                     NOT SUPPORTED
                 </td>
                 <td>
@@ -82,6 +103,9 @@
                 </td>
                 <td>
                     NOT TESTED
+                </td>
+                <td>
+
                 </td>
             </tr>
             <tr>
@@ -92,6 +116,9 @@
                     </a>
                 </td>
                 <td>
+                    Chrome Extension
+                </td>
+                <td>
                     SUPPORTED
                 </td>
                 <td>
@@ -99,6 +126,9 @@
                 </td>
                 <td>
                     NOT SUPPORTED
+                </td>
+                <td>
+
                 </td>
             </tr>
             <tr>
@@ -110,6 +140,9 @@
                     </a>
                 </td>
                 <td>
+                    Chrome Application & Chrome Extension
+                </td>
+                <td>
                     PARTIALLY SUPPORTED<br />
                     Does not support TRACE method.
                 </td>
@@ -119,28 +152,60 @@
                 <td>
                     NOT SUPPORTED
                 </td>
+                <td>
+
+                </td>
             </tr>
             <tr>
                 <td>
                     <a href="http://nodered.org/" target="_blank">Node-Red</a>
                 </td>
                 <td>
+                    Hosted Web Application
+                </td>
+                <td>
                     PARTIALLY SUPPORTED<br />
-                    Does not support HEAD, PATCH, TRACE<br />
-                    More functionality may be availablie beyond core componenets.
+                    Does not support HEAD, PATCH, TRACE
                 </td>
                 <td>
-                    FURTHER TESTING NEEDED<br />
-                    More functionality may be availablie beyond core componenets.
+                    FURTHER TESTING NEEDED componenets.
                 </td>
                 <td>
-                    FURTHER TESTING NEEDED<br />
+                    FURTHER TESTING NEEDED
+                </td>
+                <td>
                     More functionality may be availablie beyond core componenets.
                 </td>
             </tr>
             <tr>
                 <td>
-                    <a href="#sample-app">HTTP Store Sample Application (Below)</a>
+                    <a href="https://github.com/hakobera/Simple-WebSocket-Client" target="_blank">Simple WebSocket Client</a>
+                </td>
+                <td>
+                    Chrome Extension
+                </td>
+                <td>
+                    NOT SUPPORTED
+                </td>
+                <td>
+                    PARTIALLY SUPPORTED<br />
+                    Does not properly respond to empty messages.
+                </td>
+                <td>
+                    NOT SUPPORTED
+                </td>
+                <td>
+
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <a href="#sample-app">
+                        HTTP Store Sample Application (Below)
+                    </a>
+                </td>
+                <td>
+                    Hosted Web Application
                 </td>
                 <td>
                     SUPPORTED
@@ -151,9 +216,11 @@
                 <td>
                     NOT SUPPORTED
                 </td>
+                <td>
+
+                </td>
             </tr>
         </table>
-
 <hr />
         <h3><a name="sample-app">HTTP Store Sample Application</a></h3>
         <p>
