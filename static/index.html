@@ -2,6 +2,15 @@
     <head>
         <title>HTTP Store</title>
     </head>
+    <style>
+        td, th {
+            border: 1px solid black;
+            text-align:center
+            }
+        table {
+            border-collapse: collapse;
+            }
+    </style>
     <body>
         <a href="https://github.com/johnhenry/http-store" target="_blank">
             <img style="position: absolute; top: 0; right: 0; border: 0;"
@@ -36,6 +45,29 @@
             </tr>
             <tr>
                 <td>
+                    <a href="#sample-app">
+                        HTTP Store Sample Application
+                    </a>
+                    (Below)
+                </td>
+                <td>
+                    Hosted Web Application
+                </td>
+                <td>
+                    SUPPORTED
+                </td>
+                <td>
+                    NOT SUPPORTED
+                </td>
+                <td>
+                    NOT SUPPORTED
+                </td>
+                <td>
+                    This app was made specifically to demo HTTP Store.
+                </td>
+            </tr>
+            <tr>
+                <td>
                     <a
                     href="http://curl.haxx.se/docs/"
                     target="_blank">
@@ -53,13 +85,13 @@
                 </td>
                 <td>
                     SUPPORTED<br />
-                    Must use binary flag and<br />
-                    Content-Type header with charset=binary<br />
-                    Example:<br />
-                    curl -X PUT <server address>/flowers/rose.jpg -H "Content-Type: image/jpeg; charset=binary" --data-binary @/full/path/to/http-store/example/rose.jpg
                 </td>
                 <td>
-
+                    To upload binary files
+                    Set the binary flag and<br />
+                    And set Content-Type header with charset=binary<br />
+                    As in this example:<br />
+                    curl -X PUT <server address>/flowers/rose.jpg -H "Content-Type: image/jpeg; charset=binary" --data-binary @/full/path/to/http-store/example/rose.jpg
                 </td>
             </tr>
             <tr>
@@ -144,7 +176,7 @@
                 </td>
                 <td>
                     PARTIALLY SUPPORTED<br />
-                    Does not support TRACE method.
+                    Does not support TRACE method
                 </td>
                 <td>
                     NOT SUPPORTED
@@ -168,7 +200,7 @@
                     Does not support HEAD, PATCH, TRACE
                 </td>
                 <td>
-                    FURTHER TESTING NEEDED componenets.
+                    FURTHER TESTING NEEDED
                 </td>
                 <td>
                     FURTHER TESTING NEEDED
@@ -200,18 +232,37 @@
             </tr>
             <tr>
                 <td>
-                    <a href="#sample-app">
-                        HTTP Store Sample Application (Below)
-                    </a>
+                    <a href="https://chrome.google.com/webstore/detail/dark-websocket-terminal/dmogdjmcpfaibncngoolgljgocdabhke" target="_blank">Dark Web Socket Terminal</a>
                 </td>
                 <td>
-                    Hosted Web Application
+                    Chrome Application
+                </td>
+                <td>
+                    NOT SUPPORTED
                 </td>
                 <td>
                     SUPPORTED
                 </td>
                 <td>
                     NOT SUPPORTED
+                </td>
+                <td>
+
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <a href="https://www.sprintapi.com/dhcs.html" target="_blank">DHC - REST/HTTP API Client</a>
+                </td>
+                <td>
+                    Web Application & Chrome Application
+                </td>
+                <td>
+                    PARTIALLY SUPPORTED<br />
+                    Does not support TRACE
+                </td>
+                <td>
+                    SUPPORTED
                 </td>
                 <td>
                     NOT SUPPORTED
