@@ -257,8 +257,9 @@ var getEmptyPromise = function (collection, key, order, index){
     return d.promise;
 }
 
-var insertPromise = function(collection, obj){
+var insertPromise = function(collection, obj, binary){
     var d = q.defer();
+    if(binary) obj.value = Binary(obj.value);
     var callback = function(error, result){
         if(error) d.reject(error);
         else d.resolve(result);
@@ -348,11 +349,11 @@ var pushUpdate = function(collectionkey, obj, skip){
 var placeOnChannel = function(collection, key, message, type, binary){
     var obj = {
         key : key,
-        value : binary? Binary(message) : message,
+        value : message,
         time : Number(Date.now()),
         type: type,
     }
-    return insertPromise(collection, obj);
+    return insertPromise(collection, obj, binary);
 }
 
 var socketConnection = function(socket) {
@@ -673,7 +674,7 @@ var putFunc = function(request, response){
     var collection = db.collection(collectionName);
     var obj = {
         key : key,
-        value : request.encoding === "binary" ? Binary(request.raw) : request.raw,
+        value : request.raw,
         time : Number(Date.now()),
         type : request.headers["content-type"]
     }
@@ -692,7 +693,7 @@ var putFunc = function(request, response){
             })
     }
     var createObject = function(){
-        return insertPromise(collection, obj)
+        return insertPromise(collection, obj, request.encoding === "binary")
             .then(function(result){
                 LOG("PUT", result[0]);
                 return q(result);
