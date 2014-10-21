@@ -68,6 +68,7 @@ var ObjectID = mongodb.ObjectID;
 var Binary = mongodb.Binary;
 var wss;
 var db;
+var dbcollection;
 var app = express();
 var channels = {
     listen : {},
@@ -80,6 +81,7 @@ var OPTIONS = {
     BASETYPE : argv.basetype || process.env.CHARSET | "text/plain",
     CHARSET : argv.charset || process.env.CHARSET || "utf-8",
     BODYLIMIT : argv.bodylimit || process.env.BODYLIMIT || "16mb",
+    COLLECTIONNAME : argv["collection-name"] || process.env.COLLECTIONNAME || "_",
     STATIC : isSetTrue(argv["static"]) ? true
             : String(argv["static"]).toLowerCase() === "override"  ? "override"
             : false,
@@ -130,6 +132,14 @@ var setOptions = function(opts, first){
         }
         OPTIONS.BODYLIMIT = diff.BODYLIMIT.new
     }
+    if(opts.COLLECTIONNAME !== undefined){
+        diff.COLLECTIONNAME = {
+            old : OPTIONS.COLLECTIONNAME,
+            new : String(opts.COLLECTIONNAME) || "_"
+        }
+        dbcollection = db.collection(diff.COLLECTIONNAME.new);
+        OPTIONS.COLLECTIONNAME = diff.COLLECTIONNAME.new;
+    }
     if(opts.UNSAFEGET !== undefined){
         diff.UNSAFEGET = {
             old : OPTIONS.UNSAFEGET,
@@ -157,13 +167,13 @@ var setOptions = function(opts, first){
     return diff;
 }
 
-var removeAllPromise = function (collection, key){
+var removeAllPromise = function (key){
     var d = q.defer();
     var callback = function(error, result){
         if(error) d.reject(error);
         else d.resolve(result);
     }
-    collection.remove(
+    dbcollection.remove(
         { key : key } ,
         true,
         callback
@@ -171,13 +181,13 @@ var removeAllPromise = function (collection, key){
     return d.promise;
 }
 
-var removeOnePromise = function (collection, id){
+var removeOnePromise = function (id){
     var d = q.defer();
     var callback = function(error, result){
         if(error) d.reject(error);
         else d.resolve(result);
     }
-    collection.remove(
+    dbcollection.remove(
         { _id : new ObjectID(id) } ,
         false,
         callback
@@ -185,7 +195,7 @@ var removeOnePromise = function (collection, id){
     return d.promise;
 }
 
-var getPromise = function (collection, key, order, index, remove, skip){
+var getPromise = function (key, order, index, remove, skip){
     var d = q.defer();
     var callback = function(error, result){
         if(error) d.reject(error);
@@ -201,26 +211,26 @@ var getPromise = function (collection, key, order, index, remove, skip){
                     d.reject(result);
                     return;
                 }
-                pushUpdate(collection.collectionName + "/" + key,
+                pushUpdate(key,
                     result, skip);
                 d.resolve(result);
                 return;
             }
-            removeOnePromise(collection, result._id)
+            removeOnePromise(result._id)
                 .then(function(){
-                    pushUpdate(collection.collectionName + "/" + key,
+                    pushUpdate(key,
                     result, skip);
                     d.resolve(result);
 
                 }).fail(function(){
-                    pushUpdate(collection.collectionName + "/" + key,
+                    pushUpdate(key,
                         result, skip);
                     d.resolve(result);
                 })
             return;
         })
     }
-    collection.find(
+    dbcollection.find(
         { $query:
             { key : key},
           $orderby:
@@ -231,7 +241,7 @@ var getPromise = function (collection, key, order, index, remove, skip){
     )
     return d.promise;
 }
-var getEmptyPromise = function (collection, key, order, index){
+var getEmptyPromise = function (key, order, index){
     var d = q.defer();
     var callback = function(error, result){
         if(error) d.reject(error);
@@ -245,7 +255,7 @@ var getEmptyPromise = function (collection, key, order, index){
             d.resolve(result);
         })
     }
-    collection.find(
+    dbcollection.find(
         { $query:
             { key : key},
           $orderby:
@@ -257,15 +267,15 @@ var getEmptyPromise = function (collection, key, order, index){
     return d.promise;
 }
 
-var insertPromise = function(collection, obj, binary){
+var insertPromise = function(obj, binary){
     var d = q.defer();
     if(binary) obj.value = Binary(obj.value);
     var callback = function(error, result){
         if(error) d.reject(error);
         else d.resolve(result);
-        insertUpdate(collection.collectionName + "/" + obj.key);
+        insertUpdate(obj.key);
     }
-    collection.insert(
+    dbcollection.insert(
         obj,
         callback
     )
@@ -275,8 +285,8 @@ var insertPromise = function(collection, obj, binary){
 ////
 //Socket
 ////
-var onChannel = function(channelName, collectionkey, socket){
-    var chan = channels[channelName][collectionkey];
+var onChannel = function(channelName, key, socket){
+    var chan = channels[channelName][key];
     if(!chan) return false;
     if(!chan.length) return false;
     var index = chan.indexOf(socket);
@@ -285,25 +295,25 @@ var onChannel = function(channelName, collectionkey, socket){
 }
 
 //Returns true if succesully added
-var addToChannel = function(channelName, collectionkey, socket){
-    var chan = onChannel(channelName, collectionkey, socket);
+var addToChannel = function(channelName, key, socket){
+    var chan = onChannel(channelName, key, socket);
     if(chan){
         return false;
     }
     chan =
-    channels[channelName][collectionkey] =
-    channels[channelName][collectionkey] || []
-    channels[channelName][collectionkey].push(socket);
+    channels[channelName][key] =
+    channels[channelName][key] || []
+    channels[channelName][key].push(socket);
     return chan;
 };
 
 //Returns true if successfully removed
-var removeFromChannel = function(channelName, collectionkey, socket){
-    var chan = onChannel(channelName, collectionkey, socket);
+var removeFromChannel = function(channelName, key, socket){
+    var chan = onChannel(channelName, key, socket);
     if(chan){
         chan.splice(chan.indexOf(socket), 1);
         if(chan.length < 1){
-            delete channels[channelName][collectionkey];
+            delete channels[channelName][key];
         }
         return true;
     }
@@ -311,64 +321,58 @@ var removeFromChannel = function(channelName, collectionkey, socket){
 };
 
 //returns true if on channel
-var toggleChannel = function(channelName, collectionkey, socket){
-    if(onChannel(channelName, collectionkey, socket)){
-        return !removeFromChannel(channelName, collectionkey, socket);
+var toggleChannel = function(channelName, key, socket){
+    if(onChannel(channelName, key, socket)){
+        return !removeFromChannel(channelName, key, socket);
     }else{
-        return addToChannel(channelName, collectionkey, socket)
+        return addToChannel(channelName, key, socket)
     }
 }
 
 var removeFromAllChannels = function(socket){
     for(channelName in channels){
-        for(collectionkey in channels[channelName]){//collectionkey = "a/b"
-            removeFromChannel(channelName, collectionkey, socket);
+        for(key in channels[channelName]){
+            removeFromChannel(channelName, key, socket);
         }
     }
 }
 
-var insertUpdate = function(collectionkey, id){
-    var sockets = channels.listen[collectionkey] || [];
+var insertUpdate = function(key, id){
+    var sockets = channels.listen[key] || [];
     sockets.forEach(function(socket){
         socket.send();
     })
 }
-var pushUpdate = function(collectionkey, obj, skip){
-    var sockets = channels.subscribe[collectionkey] || [];
+var pushUpdate = function(key, obj, skip){
+    var sockets = channels.subscribe[key] || [];
     if(skip) sockets.forEach(function(socket){
         if(socket !== skip){
-            if(socket.att.full){
-                socket.send(JSON.stringify(obj));
-            }else{
-                socket.send(obj.value)
-            }
+            socket.send(JSON.stringify(obj));
+        }else{
+            socket.send(obj.value)
         }
     })
 }
 
-var placeOnChannel = function(collection, key, message, type, binary){
+var placeOnChannel = function(key, message, type, binary){
     var obj = {
         key : key,
         value : message,
         time : Number(Date.now()),
         type: type,
     }
-    return insertPromise(collection, obj, binary);
+    return insertPromise(obj, binary);
 }
 
 var socketConnection = function(socket) {
     var path = url.parse(socket.upgradeReq.url, true, true);
-    var collectionkey = path.pathname;
-    var pathname = collectionkey.split("/");
-    pathname.shift();
-    var collectionName = pathname.shift();
-    var key = pathname.join("/");
-    if(!(collectionName && key)){
-        socket.send("Please connect using /:collection/:key");
+    var key = path.pathname.substr(1);
+    if(!key){
+        socket.send("Please connect using /:key");
         socket.close();
         return;
     }
-    collectionkey = collectionName + "/" + key;
+
     var query = path.query;
     socket.att = {};
     socket.att.queue = isSetTrue(query.queue);//?queue=
@@ -378,14 +382,13 @@ var socketConnection = function(socket) {
     socket.att.public = isSetTrue(query.public);//?public=
     socket.att.type = query.type || "";//?type=
     if(isSetTrue(query.listen)){
-        addToChannel("listen", collectionkey, socket);
+        addToChannel("listen", key, socket);
     }
     if(isSetTrue(query.subscribe)){
-        addToChannel("subscribe", collectionkey, socket);
+        addToChannel("subscribe", key, socket);
     }
     if(query.enqueue !== undefined){
         placeOnChannel(
-            db.collection(collectionName),
             key, query.enqueue, socket.att.type, socket.att.binary)
             .then(function(result){
                 LOG("PUT", result[0]);
@@ -399,7 +402,6 @@ var socketConnection = function(socket) {
         message = message || "";
         if(socket.att.queue){
             placeOnChannel(
-                db.collection(collectionName),
                 key, message, socket.att.type, socket.att.binary)
                 .then(function(result){
                     LOG("PUT", result[0]);
@@ -415,7 +417,6 @@ var socketConnection = function(socket) {
                 //enqueue <object>
                 message = message.join(" ");
                 var p = placeOnChannel(
-                    db.collection(collectionName),
                     key, message, socket.att.type, socket.att.binary);
                     p.then(function(result){
                         LOG("PUT", result[0]);
@@ -459,8 +460,7 @@ var socketConnection = function(socket) {
                 var f = isSetTrue(message[2], socket.att.full);
                 var pub = isSetTrue(message[3], socket.att.public);
                 var order = command === "dequeue" ? 1 : -1;
-                getPromise(db.collection(collectionName),
-                    key, order, index, !p,
+                getPromise(key, order, index, !p,
                     pub ? socket : undefined).then(function(result){
 
                         if(f){
@@ -496,31 +496,31 @@ var socketConnection = function(socket) {
             case "listen":
                 var sub = message[0]
                     if(isSetTrue(sub)){
-                        addToChannel("listen", collectionkey, socket);
+                        addToChannel("listen", key, socket);
                         sub = true;
                     }
                     else if(isSetFalse(sub)){
-                        removeFromChannel("listen", collectionkey, socket);
+                        removeFromChannel("listen", key, socket);
                         sub = false;
                     }
                     else
                         sub =
-                        toggleChannel("listen", collectionkey, socket);
+                        toggleChannel("listen", key, socket);
                 socket.send(sub ? "+listen" : "-listen");
                 break;
             case "subscribe":
                 var sub = message[0]
                     if(isSetTrue(sub)){
-                        addToChannel("subscribe", collectionkey, socket);
+                        addToChannel("subscribe", key, socket);
                         sub = true;
                     }
                     else if(isSetFalse(sub)){
-                        removeFromChannel("subscribe", collectionkey, socket);
+                        removeFromChannel("subscribe", key, socket);
                         sub = false;
                     }
                     else
                         sub =
-                        toggleChannel("subscribe", collectionkey, socket);
+                        toggleChannel("subscribe", key, socket);
                 socket.send(sub ? "+subscribe" : "-subscribe");
                 break;
         }
@@ -531,9 +531,9 @@ var socketConnection = function(socket) {
 //Helpers
 ////
 
-var render = function(response, obj, status, collectionName, key){
+var render = function(response, obj, status, key){
     if(status === 404 && OPTIONS.STATIC){
-        var path = __dirname + "/static/" + collectionName + "/" + key;
+        var path = __dirname + "/static/" + key;
         fs.exists(path + "/index.html", function(yes){
             if(yes){
                 response.sendFile(path + "/index.html");
@@ -587,10 +587,8 @@ var rawBody = function(request, response, next){
 ////
 
 var getFunc = function(request, response){
-    var collectionName = request.params.collectionName;
     var key = request.params.key;
     if(request.params[0]) key += request.params[0];
-    var collection = db.collection(collectionName);
     var obj = {
         key : key,
         time : Number(Date.now()),
@@ -612,7 +610,7 @@ var getFunc = function(request, response){
         || (isSetTrue(request.query.pop));
     var getObject = function(){
         return (request.method !== "HEAD"  ? getPromise : getEmptyPromise )
-        (collection, key, order, index)
+        (key, order, index)
             .then(function(result){
                 LOG("GET", result);
                 return q(result);
@@ -622,7 +620,7 @@ var getFunc = function(request, response){
             })
     }
     var deleteObject = function(result){
-        if(result) return removeOnePromise(collection, result._id)
+        if(result) return removeOnePromise(result._id)
             .then(function(deleted){
                 LOG("DELETE", result._id);
                 return q(result);
@@ -638,9 +636,9 @@ var getFunc = function(request, response){
             obj._id = result._id;
             obj.type = result.type;
             obj.time = result.time;
-            render(response, obj, 200, collectionName, key);
+            render(response, obj, 200, key);
         }else{
-            render(response, obj, 404, collectionName, key)
+            render(response, obj, 404, key);
         }
     }
     if(respond){
@@ -655,12 +653,12 @@ var getFunc = function(request, response){
             .fail(renderObject)
         }
     }else{
-        removeAllPromise(collection, key)
+        removeAllPromise(key)
             .then(function(result){
                 delete obj.type;
                 delete obj.value;
                 delete obj._id;
-                render(response, obj, result? 410 : 404)
+                render(response, obj, result? 410 : 404);
             })
     }
 }
@@ -668,10 +666,8 @@ var getFunc = function(request, response){
 
 
 var putFunc = function(request, response){
-    var collectionName = request.params.collectionName;
     var key = request.params.key;
     if(request.params[0]) key += request.params[0];
-    var collection = db.collection(collectionName);
     var obj = {
         key : key,
         value : request.raw,
@@ -683,7 +679,7 @@ var putFunc = function(request, response){
         isSetFalse(request.query.enqueue) :
         !isSetTrue(request.query.enqueue);
     var deletePreviousObjects = function(){
-        return removeAllPromise(collection, key)
+        return removeAllPromise(key)
             .then(function(deleted){
                 LOG("DELETE", key);
                 return q();
@@ -693,7 +689,7 @@ var putFunc = function(request, response){
             })
     }
     var createObject = function(){
-        return insertPromise(collection, obj, request.encoding === "binary")
+        return insertPromise(obj, request.encoding === "binary")
             .then(function(result){
                 LOG("PUT", result[0]);
                 return q(result);
@@ -705,7 +701,7 @@ var putFunc = function(request, response){
     var renderObject = function(result){
         result = result[0];
         obj._id = result._id;
-        render(response, obj, 200, collectionName, key);
+        render(response, obj, 200, key);
     }
     if(remove){
         deletePreviousObjects()
@@ -720,7 +716,6 @@ var putFunc = function(request, response){
 }
 
 var traceFunc = function(request, response){
-    var collectionName = request.params.collectionName;
     var key = request.params.key;
     var obj = {
         time : Number(Date.now()),
@@ -747,12 +742,12 @@ var patchFunc = function(request, response){
 }
 
 app.use(rawBody);
-router.delete("/:collectionName/:key*", getFunc);
-router.get("/:collectionName/:key*", getFunc);
-router.head("/:collectionName/:key*", getFunc);
-router.put("/:collectionName/:key*", putFunc);
-router.post("/:collectionName/:key*", putFunc);
-router.trace("/:collectionName/:key*", traceFunc);
+router.delete("/:key*", getFunc);
+router.get("/:key*", getFunc);
+router.head("/:key*", getFunc);
+router.put("/:key*", putFunc);
+router.post("/:key*", putFunc);
+router.trace("/:key*", traceFunc);
 router.patch("/", patchFunc);
 if(OPTIONS.STATIC === "override")
     app.use(express.static(__dirname + "/static"));

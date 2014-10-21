@@ -2,6 +2,9 @@
 
 ##Changelog
 
+###0.3.0
++ Modified Key - Now includes full url string between host and query. Collection is now set by default for all requests.
+
 ###0.2.7
 + Fixed - Non-public messages no longer go out to subscribers
 

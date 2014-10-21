@@ -11,6 +11,11 @@
   ],
   "repository": "https://github.com/johnhenry/http-store",
   "env": {
+    "COLLECTIONNAME": {
+      "description": "Name of collection in database to use.",
+      "value" : "_",
+      "required" : false
+    },
     "CHARSET": {
         "description": "Default encoding for stored objects.",
         "value" : "utf-8",

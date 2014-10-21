@@ -109,9 +109,9 @@ While standard HTTP Methods map well to traditional key-value store options of (
 
 ###Standard HTTP Methods
 
-Once Running, you may access the key-value store via standard HTTP verbs. The key is a combination collection and name. The value is the body of the request.
+Once Running, you may access the key-value store via standard HTTP verbs. The key is the string of request parameters The value is the body of the request.
 
-####__PUT__ /:collection/:key
+####__PUT__ /:key
 
 Insert values in to the database via the __PUT__ method
 Content-Type header will be stored along with object.
@@ -120,7 +120,7 @@ Content-Type header will be stored along with object.
     - ?enqueue=false|true - set to true to enqueue item rather than replace an item (See POST)
 
 
-####__GET__ /:collection/:key
+####__GET__ /:key
 
 Retrive values from the database via the __GET__ method
 Content-Type header will be set according to requested type or stored type if not requested.
@@ -130,7 +130,7 @@ Content-Type header will be set according to requested type or stored type if no
     - ?pop=false|true - treat item as a queue and start from end instead of the beginning. Can be combined with dequeue to work as a stack.
     - ?index=0|<uint> -  treat item as a queue and retrieve specific item by order placed in index. Can be combined with pop to start from end of stack, and dequeue to remove specific items.
 
-####__DELETE__ /:collection/:key
+####__DELETE__ /:key
 
 Remove values (or oldest values) from the database via the __DELETE__ method
 
@@ -140,7 +140,7 @@ Remove values (or oldest values) from the database via the __DELETE__ method
     - ?pop=false|true - treat item as a queue and start from end instead of beginning. Implies dequeue and thus works as a stack.
     - ?index=0|<uint> - treat item as a queue and retrieve specific item by order placed in index. Implies dequeue. Can be combined with pop to start from the end instead of the beginning.
 
-####POST /:collection/:key
+####POST /:key
 
 Enqueue values into the database as via the __POST__ method
 
@@ -161,11 +161,11 @@ Send a json object similar to the following to change settings at run time. Unse
 }
 ```
 
-####HEAD /:collection/:key
+####HEAD /:key
 
 Similar to GET but without the value and removal is impossible. Headers remain intact.
 
-####TRACE /:collection/:key
+####TRACE /:key
 
 Responds with the user's request.
 
@@ -185,9 +185,9 @@ Also, please note that I haven't had any success uploading binary files through 
 You may insert a request's body into the database with the following commands:
 
 ```
-    PUT <server address>/<collection>/<key>
+    PUT <server address>/<key>
 
-    POST <server address>/<collection>/<key>?enquque=false
+    POST <server address>/<key>?enquque=false
 ```
 
 Example: Insert an image
@@ -202,7 +202,7 @@ Note: The "@" is necessary as is the full path.
 You may insert a request's body into the database with the following commands:
 
 ```
-    GET <server address>/<collection>/<key>
+    GET <server address>/<key>
 ```
 
 Example: Retrive an image
@@ -220,17 +220,17 @@ You can also attach the "?index" parameter to indicate which index to remove and
 You may enqueue a into the database item with the following commands:
 
 ```
-    POST <server address>/<collection>/<key>
+    POST <server address>/<key>
 
-    PUT <server address>/<collection>/<key>?enquque=true
+    PUT <server address>/<key>?enquque=true
 ```
 
 Example: Enqueue successive images
 
 ```
-curl -X POST http://127.0.0.1:8080/flowers/list -H "Content-Type: image/png; charset=binary" --data-binary @/full/path/to/http-store/example/daisy.jpg
+curl -X POST http://127.0.0.1:8080/listofflowers -H "Content-Type: image/png; charset=binary" --data-binary @/full/path/to/http-store/example/daisy.jpg
 
-curl -X POST http://127.0.0.1:8080/flowers/list -H "Content-Type: image/jpeg; charset=binary" --data-binary @/full/path/to/http-store/example/rose.jpg
+curl -X POST http://127.0.0.1:8080/listofflowers -H "Content-Type: image/jpeg; charset=binary" --data-binary @/full/path/to/http-store/example/rose.jpg
 ```
 
 #### Dequeueing
@@ -238,8 +238,8 @@ curl -X POST http://127.0.0.1:8080/flowers/list -H "Content-Type: image/jpeg; ch
 You may insert a request's body into the database with the following commands:
 
 ```
-    GET <server address>/<collection>/<key>?dequeue=true
-    DELETE <server address>/<collection>/<key>?dequeue=true
+    GET <server address>/<key>?dequeue=true
+    DELETE <server address>/<key>?dequeue=true
 ```
 (Note: This will only work for the GET method if you have the UNSAFEGET option set.)
 
@@ -247,9 +247,9 @@ You may insert a request's body into the database with the following commands:
 Example : Dequeue successive images
 
 ```
-curl -X DELETE http://127.0.0.1:8080/flowers/list?dequeue=true > rose.jpg
+curl -X DELETE http://127.0.0.1:8080/listofflowers?dequeue=true > rose.jpg
 
-curl -X DELETE http://127.0.0.1:8080/flowers/list?dequeue=true > daisy.jpg
+curl -X DELETE http://127.0.0.1:8080/listofflowers?dequeue=true > daisy.jpg
 
 ```
 
@@ -260,13 +260,13 @@ You can also attach the "?index" parameter to indicate which index to remove and
 You may remove all items at a key with the following commands:
 
 ```
-    DELETE <server address>/<collection>/<key>
+    DELETE <server address>/<key>
 ```
 
 Example: Remove all images
 
 ```
-curl -X DELETE http://127.0.0.1:8080/flowers/list
+curl -X DELETE http://127.0.0.1:8080/listofflowers
 
 ```
 Appending "?dequeue=true" will remove and return a single item from the list.
@@ -290,7 +290,7 @@ npm install --g ws
 You may connect using the same url as your server
 
 ```
-<server address>/<collection>/<key>
+<server address>/<key>
 ```
 
 Depending on your client, you must attach one of the following protocols (or their secure counterparts) to the beginning of the server address. If one doesn't work, try the other.

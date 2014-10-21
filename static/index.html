@@ -293,9 +293,6 @@
             </label>
             <p>
                 <label>
-                    Collection : <input id="collection">
-                </label>
-                <label>
                     Key : <input id="key">
                 </label>
             </p>
@@ -391,19 +388,16 @@
                 .innerHTML = "";
                 document.getElementById("response-url")
                 .href = "";
-                var collection = document.getElementById("collection")
-                    .value.split(" ").join(" ");
                 var key = document.getElementById("key")
                     .value.split(" ").join(" ");
                 var method =
-                        document.getElementById("method").value
-                if(!(key && collection) && method !== "PATCH")
-                    return alert("Please set collection and key.");
+                        document.getElementById("method").value;
+                if(!key && method !== "PATCH")
+                    return alert("Please set a key.");
                 var type =
                     document.getElementById("alt-type").value
                         .split(" ").join(" ")
-                    || document.getElementById("type").value
-
+                    || document.getElementById("type").value;
                 var body = document.getElementById("body").value;
                 var queryHash = {
                     enqueue : document
@@ -424,7 +418,7 @@
                 for(k in queryHash){
                     if(queryHash[k]) query.push(k + "=" + queryHash[k]);
                 }
-                responseURL = "/" + collection + "/" + key;
+                responseURL = key;
                 if(query.length){
                     responseURL += "?" + query.join("&");
                 }
@@ -470,8 +464,6 @@
                         document
                             .getElementById("index")
                             .checked = "";
-                        document.getElementById("collection")
-                            .value = "";
                         document
                             .getElementById("key")
                             .value = "";
