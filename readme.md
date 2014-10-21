@@ -130,6 +130,8 @@ Content-Type header will be set according to requested type or stored type if no
     - ?pop=false|true - treat item as a queue and start from end instead of the beginning. Can be combined with dequeue to work as a stack.
     - ?index=0|<uint> -  treat item as a queue and retrieve specific item by order placed in index. Can be combined with pop to start from end of stack, and dequeue to remove specific items.
 
+Note: if HTTPPOP is set, ?dequeue only reverses order and ?pop forces removal.
+
 ####__DELETE__ /:key
 
 Remove values (or oldest values) from the database via the __DELETE__ method
@@ -139,6 +141,9 @@ Remove values (or oldest values) from the database via the __DELETE__ method
     - ?dequeue=false|true = treat item as queue and return/remove begining item instead of deleting whole item. (see GET ?dequeue=true)
     - ?pop=false|true - treat item as a queue and start from end instead of beginning. Implies dequeue and thus works as a stack.
     - ?index=0|<uint> - treat item as a queue and retrieve specific item by order placed in index. Implies dequeue. Can be combined with pop to start from the end instead of the beginning.
+
+Note: if HTTPPOP is set, ?dequeue only reverses order and ?pop forces removal.
+
 
 ####POST /:key
 
@@ -432,16 +437,18 @@ Options:
                             override - serve static files
                                     static files will appear before http-store resources
 
-    --(no-)peek         If set as false, all Get request to data base remove item.
-    --(no-)unsafe-get   Enables removal of items through GET get method by appending "?dequeue=true" to url if set.
-    --(no-)capture-headers   Capture and store all headers along with body.
-    --mongoprotocol     Protocol for connecting to mongo host.
-    --mongohost         MongoDB database host.
-    --mongouser         MongoDB database user name.
-    --mongopass         MongoDB database password.
-    --mongoport         MongoDB connection port.
-    --mongobase         MongoDB database name.
-    --mongourl          MongoDB database full URL. Overwrites all other MongoDB related fields if set.
+    --(no-)peek             If set as false, all Get request to data base remove item.
+    --(no-)unsafe-get       Enables removal of items through GET get method by appending "?dequeue=true" to url if set.
+    --(no-)capture-headers  Capture and store all headers along with body.
+    --(no-)http-pop         Enables popping by default via GET/DELETE
+    --(no-)allow-set-date   Allow date to be set via request headers
+    --mongoprotocol         Protocol for connecting to mongo host.
+    --mongohost             MongoDB database host.
+    --mongouser             MongoDB database user name.
+    --mongopass             MongoDB database password.
+    --mongoport             MongoDB connection port.
+    --mongobase             MongoDB database name.
+    --mongourl              MongoDB database full URL. Overwrites all other MongoDB related fields if set.
 ```
 
 ###Environment
@@ -458,6 +465,8 @@ If not set on the command line, the following options may set as environmental v
 - PEEK
 - UNSAFEGET
 - CAPTUREHEADERS
+- HTTPPOP
+- ALLOWSETDATE
 - MONGOPROTOCOL
 - MONGOUSER
 - MONGOPASS

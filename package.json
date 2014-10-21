@@ -1,11 +1,12 @@
 {
   "name": "http-store",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Generic DataStore Using HTTP Verbs",
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node server.js",
+    "connect" : "export URL=http://$HOST/$KEY?queue=$QUEUE\\&binary=$BINARY\\&type=$TYPE\\&public=$PUBLIC\\&full=$FULL\\&peek=$PEEK\\&subscribe=$SUBSCRIBE\\&listen=$LISTEN && echo $URL && wscat -c $URL"
   },
   "bin": {
     "http-store": "server.js"

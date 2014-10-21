@@ -51,6 +51,16 @@
         "value" : "true",
         "required" : false
     },
+    "HTTPPOP":{
+        "description": "GET/DELETE methods will pop instead of dequeue by defaut.",
+        "value" : "false",
+        "required" : false
+    },
+    "ALLOWSETDATE":{
+        "description": "Allows storage date to be set. ",
+        "value" : "false",
+        "required" : false
+    },
     "MONGOPROTOCOL": {
         "description": "Protocol for connecting to mongo host.",
         "value" : "mongodb",

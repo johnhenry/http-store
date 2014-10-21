@@ -10,11 +10,11 @@ var argv = require('yargs')
     .default("verbose", false)
     .default("static")
     .boolean("unsafe-get")
-    .default("unsafe-get", false)
     .boolean("peek")
     .default("peek", true)
     .boolean("capture-headers")
-    .default("capture-headers", false)
+    .boolean("http-pop")
+    .boolean("allow-set-headers")
     .boolean("enable-env-file")
     .default("enable-env-file", true)
     .alias("e","enable-env-file")
@@ -74,7 +74,6 @@ var channels = {
     listen : {},
     subscribe : {}
 };
-
 //Set options based on environmental variables
 var OPTIONS = {
     PORT : argv.port || process.env.PORT || 8080,
@@ -83,17 +82,25 @@ var OPTIONS = {
     BODYLIMIT : argv.bodylimit || process.env.BODYLIMIT || "16mb",
     COLLECTIONNAME : argv["collection-name"] || process.env.COLLECTIONNAME || "_",
     STATIC : isSetTrue(argv["static"]) ? true
+            : isSetTrue(process.env.STATIC) ? true
+            : String(process.env.STATIC).toLowerCase() === "override"  ? "override"
             : String(argv["static"]).toLowerCase() === "override"  ? "override"
             : false,
-    PEEK : isSetFalse(argv["peek"]) ? false
-            : isSetFalse(process.env.PEEK) ? false
-            : "true",
     UNSAFEGET : isSetTrue(argv["unsafe-get"])
         || isSetTrue(process.env.UNSAFEGET)
         || false,
     CAPTUREHEADERS : isSetTrue(argv["capture-headers"])
         || isSetTrue(process.env.CAPTUREHEADERS)
         || false,
+    HTTPPOP : isSetTrue(argv["http-pop"])
+        || isSetTrue(process.env.HTTPPOP)
+        || false,
+    ALLOWSETDATE : isSetTrue(argv["allow-set-date"])
+        || isSetTrue(process.env.ALLOWSETDATE)
+        || false,
+    PEEK : isSetFalse(argv["peek"]) ? false
+        : isSetFalse(process.env.PEEK) ? false
+        : true,
     MONGOURL : argv.mongourl
         || (argv.mongourl || process.env.MONGOURL)
         || (argv.mongoprotocol
@@ -147,13 +154,6 @@ var setOptions = function(opts, first){
         }
         OPTIONS.UNSAFEGET = diff.UNSAFEGET.new;
     }
-    if(opts.PEEK !== undefined){
-        diff.PEEK = {
-            old : OPTIONS.PEEK,
-            new : !!opts.PEEK
-        }
-        OPTIONS.PEEK = diff.PEEK.new;
-    }
     if(opts.CAPTUREHEADERS !== undefined){
         diff.CAPTUREHEADERS = {
             old : OPTIONS.CAPTUREHEADERS,
@@ -161,8 +161,32 @@ var setOptions = function(opts, first){
         }
         OPTIONS.CAPTUREHEADERS = diff.CAPTUREHEADERS.new;
     }
+    if(opts.HTTPPOP !== undefined){
+        diff.HTTPPOP = {
+            old : OPTIONS.HTTPPOP,
+            new : !!opts.HTTPPOP
+        }
+        OPTIONS.HTTPPOP = diff.HTTPPOP.new;
+    }
+    if(opts.ALLOWSETDATE !== undefined){
+        diff.ALLOWSETDATE = {
+            old : OPTIONS.ALLOWSETDATE,
+            new : !!opts.ALLOWSETDATE
+        }
+        OPTIONS.ALLOWSETDATE = diff.ALLOWSETDATE.new;
+    }
+    if(opts.PEEK !== undefined){
+        diff.PEEK = {
+            old : OPTIONS.PEEK,
+            new : !!opts.PEEK
+        }
+        OPTIONS.PEEK = diff.PEEK.new;
+    }
     if(!first){
-        LOG("OPTIONS", diff)
+        LOG("OPTIONS:")
+        for(o in diff){
+            LOG(o, diff[o]);
+        }
     }
     return diff;
 }
@@ -234,7 +258,7 @@ var getPromise = function (key, order, index, remove, skip){
         { $query:
             { key : key},
           $orderby:
-            { time : order }},
+            { date : order }},
         {headers:false},
         { limit : 1 , skip : index},
         callback
@@ -259,7 +283,7 @@ var getEmptyPromise = function (key, order, index){
         { $query:
             { key : key},
           $orderby:
-            { time : order }},
+            { date : order }},
         {value:false, headers:false},
         { limit : 1 , skip : index},
         callback
@@ -347,9 +371,11 @@ var pushUpdate = function(key, obj, skip){
     var sockets = channels.subscribe[key] || [];
     if(skip) sockets.forEach(function(socket){
         if(socket !== skip){
-            socket.send(JSON.stringify(obj));
-        }else{
-            socket.send(obj.value)
+            if(socket.att.full){
+                socket.send(JSON.stringify(obj));
+            }else{
+                socket.send(obj.value)
+            }
         }
     })
 }
@@ -358,7 +384,8 @@ var placeOnChannel = function(key, message, type, binary){
     var obj = {
         key : key,
         value : message,
-        time : Number(Date.now()),
+        date : OPTIONS.ALLOWSETDATE ? headers["date"]
+        || Date.now() : Date.now(),
         type: type,
     }
     return insertPromise(obj, binary);
@@ -556,6 +583,7 @@ var render = function(response, obj, status, key){
     }else{
         response.status(status || 200);
         if(obj._id) response.setHeader("ETag", obj._id);
+        if(obj.date) response.setHeader("Last-Modified", obj.date);
         if(obj.type) response.setHeader("Content-Type", obj.type);
         response.send(obj.value);
         LOG("RENDER", obj);
@@ -591,23 +619,36 @@ var getFunc = function(request, response){
     if(request.params[0]) key += request.params[0];
     var obj = {
         key : key,
-        time : Number(Date.now()),
+        date : OPTIONS.ALLOWSETDATE ? headers["date"]
+        || Date.now() : Date.now(),
         type : request.headers["content-type"]
     };
     var index = isInt(request.query.index) ? Number(request.query.index) : 0;
-    var order = isSetTrue(request.query.pop) ? -1 : 1;
-    var remove =
-        (request.method === "DELETE"
-        || (OPTIONS.UNSAFEGET && isSetTrue(request.query.dequeue)))
-        && (request.method !== "HEAD");
-        if(!OPTIONS.PEEK
-             && OPTIONS.UNSAFEGET
-             && request.method === "GET") remove = true;
-    var respond = request.method === "GET"
+
+    var order;
+    var remove;
+    var respond;
+    if(OPTIONS.HTTPPOP){
+        order = isSetTrue(request.query.dequeue) ? 1 : -1;
+        remove =
+            (request.method === "DELETE"
+            || (OPTIONS.UNSAFEGET && isSetTrue(request.query.pop)))
+            && (request.method !== "HEAD");
+    }else{
+        order = isSetTrue(request.query.pop) ? -1 : 1;
+        remove =
+            (request.method === "DELETE"
+            || (OPTIONS.UNSAFEGET && isSetTrue(request.query.dequeue)))
+            && (request.method !== "HEAD");
+    }
+    if(!OPTIONS.PEEK
+         && OPTIONS.UNSAFEGET
+         && request.method === "GET") remove = true;
+    respond = request.method === "GET"
         || request.method === "HEAD"
-        || isSetTrue(request.query.dequeue)
-        || (isInt(request.query.index))
-        || (isSetTrue(request.query.pop));
+        || isSetTrue(request.query.pop)
+        || isInt(request.query.index)
+        || isSetTrue(request.query.dequeue);
     var getObject = function(){
         return (request.method !== "HEAD"  ? getPromise : getEmptyPromise )
         (key, order, index)
@@ -635,7 +676,7 @@ var getFunc = function(request, response){
             obj.value = result.value;
             obj._id = result._id;
             obj.type = result.type;
-            obj.time = result.time;
+            obj.date = result.date;
             render(response, obj, 200, key);
         }else{
             render(response, obj, 404, key);
@@ -671,7 +712,8 @@ var putFunc = function(request, response){
     var obj = {
         key : key,
         value : request.raw,
-        time : Number(Date.now()),
+        date : OPTIONS.ALLOWSETDATE ? headers["date"]
+        || Date.now() : Date.now(),
         type : request.headers["content-type"]
     }
     if(OPTIONS.CAPTUREHEADERS) obj.headers = request.headers;
@@ -718,7 +760,8 @@ var putFunc = function(request, response){
 var traceFunc = function(request, response){
     var key = request.params.key;
     var obj = {
-        time : Number(Date.now()),
+        date : OPTIONS.ALLOWSETDATE ? headers["date"]
+        || Date.now() : Date.now(),
         value : request.encoding === "binary" ? Binary(request.raw) : request.raw,
         type : request.headers["content-type"]
     };
@@ -729,7 +772,8 @@ var traceFunc = function(request, response){
 var patchFunc = function(request, response){
     var obj = {
         value : request.raw,
-        time : Number(Date.now()),
+        date : OPTIONS.ALLOWSETDATE ? headers["date"]
+        || Date.now() : Date.now(),
         type : "application/json"
     }
     try{
@@ -770,7 +814,9 @@ MongoClient.connect(
         wss.on('connection', socketConnection);
         LOG("Web Sockets Listening:", OPTIONS.PORT);
         setOptions(OPTIONS, true);
-        LOG("CONFIG:");
-        LOG(OPTIONS);
+        LOG("CONFIG:")
+        for(o in OPTIONS){
+            LOG(o, OPTIONS[o]);
+        }
     }
 )

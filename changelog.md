@@ -1,6 +1,14 @@
 #HTTP Store
 
 ##Changelog
+The change version _roughly_ conforms to semantic versioning.
+
+###0.3.1
++ Added - Exposed Storage time as Last-Modified response header.
++ Added - Added Ability to store date directly with "Date" request header if ALLOWSETDATE is set true.
++ Added - Popping from stack can now be enabled by default (as opposed to Dequeueing)
++ Added - test script / environments to make working with web sockets easier (Through wscat)
++ Fixed - Full property for subscribe objects works
 
 ###0.3.0
 + Modified Key - Now includes full url string between host and query. Collection is now set by default for all requests.
