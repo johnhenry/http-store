@@ -21,14 +21,14 @@
         "value" : "1mb",
         "required" : false
     },
-    "DEQUEUEINTERVAL": {
-        "description": "Dequeue interval for connected sockets.",
-        "value" : "10000",
+    "STATIC": {
+        "description": "Host a static site",
+        "value" : "true",
         "required" : false
     },
-    "POPINTERVAL": {
-        "description": "Pop interval for connected sockets",
-        "value" : "10000",
+    "PEEK": {
+        "description": "Allow viewing of individual items without removal.",
+        "value" : "true",
         "required" : false
     },
     "BASETYPE": {
@@ -38,7 +38,12 @@
     },
     "UNSAFEGET": {
         "description": "Enables removal of items through GET get method by appending '?dequeue=true' to url if set.",
-        "value" : "",
+        "value" : "true",
+        "required" : false
+    },
+    "CAPTUREHEADERS":{
+        "description": "Store request headers in database alonside value.",
+        "value" : "true",
         "required" : false
     },
     "MONGOPROTOCOL": {

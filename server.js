@@ -559,9 +559,7 @@ var render = function(response, obj, status, collectionName, key){
         response.send(obj.value);
         LOG("RENDER", obj);
     }
-
 }
-
 
 ////
 //Application Middleware

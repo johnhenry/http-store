@@ -451,13 +451,13 @@ Set these options in your environment
 If not set on the command line, the following options may set as environmental variables.
 
 - PORT
+- BASETYPE
 - CHARSET
 - BODYLIMIT
 - STATIC
 - PEEK
 - UNSAFEGET
 - CAPTUREHEADERS
-- BASETYPE
 - MONGOPROTOCOL
 - MONGOUSER
 - MONGOPASS
