@@ -3,7 +3,6 @@
 ##Changelog
 The change version _roughly_ conforms to semantic versioning.
 
-
 ###0.3.2
 + Fixed bug setting base type
 

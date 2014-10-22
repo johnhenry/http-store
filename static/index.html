@@ -20,260 +20,8 @@
         <h2>
             HTTP Store
         </h2>
-        <h3>Now that your HTTP store server is running, you can connect to it with one of the zillions of applications that support HTTP or Web Sockets.</h3>
-        <p>Here are just a few:</p>
-        <table border="1">
-            <tr>
-                <th width="25%">
-                    Application
-                </th>
-                <th>
-                    Type
-                </th>
-                <th>
-                    HTTP Interface
-                </th>
-                <th>
-                    Web Sockets
-                </th>
-                <th>
-                    Uploading Binary Files
-                </th>
-                <th>
-                    Other Notes
-                </th>
-            </tr>
-            <tr>
-                <td>
-                    <a href="#sample-app">
-                        HTTP Store Sample Application
-                    </a>
-                    (Below)
-                </td>
-                <td>
-                    Hosted Web Application
-                </td>
-                <td>
-                    SUPPORTED
-                </td>
-                <td>
-                    NOT SUPPORTED
-                </td>
-                <td>
-                    NOT SUPPORTED
-                </td>
-                <td>
-                    This app was made specifically to demo HTTP Store.
-                </td>
-            </tr>
-            <tr>
-                <td>
-                    <a
-                    href="http://curl.haxx.se/docs/"
-                    target="_blank">
-                    curl
-                    </a>
-                </td>
-                <td>
-                    Command Line Application
-                </td>
-                <td>
-                    SUPPORTED
-                </td>
-                <td>
-                    NOT SUPPORTED
-                </td>
-                <td>
-                    SUPPORTED<br />
-                </td>
-                <td>
-                    To upload binary files
-                    Set the binary flag and<br />
-                    And set Content-Type header with charset=binary<br />
-                    As in this example:<br />
-                    curl -X PUT <server address>/flowers/rose.jpg -H "Content-Type: image/jpeg; charset=binary" --data-binary @/full/path/to/http-store/example/rose.jpg
-                </td>
-            </tr>
-            <tr>
-                <td>
-                    <a
-                    href="http://www.gnu.org/software/wget/manual/wget.html" target="_blank">
-                    wget
-                    </a>
-                </td>
-                <td>
-                    Command Line Application
-                </td>
-                <td>
-                    SUPPORTED
-                </td>
-                <td>
-                    NOT SUPPORTED
-                </td>
-                <td>
-                    NOT TESTED
-                </td>
-                <td>
-
-                </td>
-            </tr>
-            <tr>
-                <td>
-                    <a
-                    href="https://www.npmjs.org/package/ws" target="_blank">
-                    ws (wscat)
-                    </a>
-                </td>
-                <td>
-                    Command Line Application
-                </td>
-                <td>
-                    NOT SUPPORTED
-                </td>
-                <td>
-                    SUPPORTED
-                </td>
-                <td>
-                    NOT TESTED
-                </td>
-                <td>
-
-                </td>
-            </tr>
-            <tr>
-                <td>
-                    <a
-                    href="http://restforchrome.blogspot.com/" target="_blank">
-                    Advanced REST Client
-                    </a>
-                </td>
-                <td>
-                    Chrome Extension
-                </td>
-                <td>
-                    SUPPORTED
-                </td>
-                <td>
-                    SUPPORTED
-                </td>
-                <td>
-                    NOT SUPPORTED
-                </td>
-                <td>
-
-                </td>
-            </tr>
-            <tr>
-                <td>
-                    <a
-                    href="http://www.getpostman.com/"
-                    target="_blank">
-                    Postman
-                    </a>
-                </td>
-                <td>
-                    Chrome Application & Chrome Extension
-                </td>
-                <td>
-                    PARTIALLY SUPPORTED<br />
-                    Does not support TRACE method
-                </td>
-                <td>
-                    NOT SUPPORTED
-                </td>
-                <td>
-                    NOT SUPPORTED
-                </td>
-                <td>
-
-                </td>
-            </tr>
-            <tr>
-                <td>
-                    <a href="http://nodered.org/" target="_blank">Node-Red</a>
-                </td>
-                <td>
-                    Hosted Web Application
-                </td>
-                <td>
-                    PARTIALLY SUPPORTED<br />
-                    Does not support HEAD, PATCH, TRACE
-                </td>
-                <td>
-                    FURTHER TESTING NEEDED
-                </td>
-                <td>
-                    FURTHER TESTING NEEDED
-                </td>
-                <td>
-                    More functionality may be availablie beyond core componenets.
-                </td>
-            </tr>
-            <tr>
-                <td>
-                    <a href="https://github.com/hakobera/Simple-WebSocket-Client" target="_blank">Simple WebSocket Client</a>
-                </td>
-                <td>
-                    Chrome Extension
-                </td>
-                <td>
-                    NOT SUPPORTED
-                </td>
-                <td>
-                    PARTIALLY SUPPORTED<br />
-                    Does not properly respond to empty messages.
-                </td>
-                <td>
-                    NOT SUPPORTED
-                </td>
-                <td>
-
-                </td>
-            </tr>
-            <tr>
-                <td>
-                    <a href="https://chrome.google.com/webstore/detail/dark-websocket-terminal/dmogdjmcpfaibncngoolgljgocdabhke" target="_blank">Dark Web Socket Terminal</a>
-                </td>
-                <td>
-                    Chrome Application
-                </td>
-                <td>
-                    NOT SUPPORTED
-                </td>
-                <td>
-                    SUPPORTED
-                </td>
-                <td>
-                    NOT SUPPORTED
-                </td>
-                <td>
-
-                </td>
-            </tr>
-            <tr>
-                <td>
-                    <a href="https://www.sprintapi.com/dhcs.html" target="_blank">DHC - REST/HTTP API Client</a>
-                </td>
-                <td>
-                    Web Application & Chrome Application
-                </td>
-                <td>
-                    PARTIALLY SUPPORTED<br />
-                    Does not support TRACE
-                </td>
-                <td>
-                    SUPPORTED
-                </td>
-                <td>
-                    NOT SUPPORTED
-                </td>
-                <td>
-
-                </td>
-            </tr>
-        </table>
-<hr />
-        <h3><a name="sample-app">HTTP Store Sample Application</a></h3>
+        <p>Now that your HTTP store server is running, you can connect to it with the sample application below, or click <a href="https://github.com/johnhenry/http-store/blob/master/applications.md" target="_blank">here</a> for a list of tested applications.</p>
+        <h3>HTTP Store Sample Application</h3>
         <p>
             This sample application connects to this instance of HTTP store via the HTTP interface.
         </p>
@@ -357,6 +105,8 @@
         <br /><br />
         Type : <span id="response-type"></span>
         <br /><br />
+        Storage Date : <span id="response-date"></span>
+        <br /><br />
         ID : <span id="response-id"></span>
         <br /><br />
         Response : <pre id="response-body"></pre>
@@ -376,6 +126,10 @@
                     .innerHTML=xmlhttp.getResponseHeader("ETag");
                     document.getElementById("response-type")
                     .innerHTML=xmlhttp.getResponseHeader("Content-type");
+                    document.getElementById("response-date")
+                    .innerHTML
+                    = xmlhttp.getResponseHeader("Last-modified")?
+                    new Date(+xmlhttp.getResponseHeader("Last-modified")) : "";
                     document.getElementById("response-status")
                     .innerHTML=xmlhttp.status;
                     document.getElementById("response-body")
