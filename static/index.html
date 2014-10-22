@@ -156,7 +156,7 @@
                 var queryHash = {
                     enqueue : document
                                 .getElementById("enqueue")
-                    .checked? "true" : "",
+                    .checked? "true" : "false",
                     dequeue : document
                                 .getElementById("dequeue")
                     .checked? "true" : "",
@@ -196,14 +196,17 @@
                             .getElementById("index")
                             .checked = "";
                         document
-                            .getElementById("body-box")
+                            .getElementById("enqueue-box")
                             .style.display = "block";
                         document
-                            .getElementById("enqueue-box")
+                            .getElementById("body-box")
                             .style.display = "block";
                         document
                             .getElementById("dequeue-box")
                             .style.display = "none";
+                        document
+                            .getElementById("enqueue")
+                            .checked = method==="POST";
                     break;
                     case "PATCH" :
                         document
