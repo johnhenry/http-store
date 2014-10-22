@@ -229,8 +229,8 @@ var getPromise = function (key, order, index, remove, skip){
             if(error) d.reject(error);
             if(!result.length) d.reject(result);
             result = result[0];
-            if(result && result.value && result.value.buffer){
-                result.value = result.value.buffer;
+            if(result && result.binary && result.binary.buffer){
+                result.value = result.binary.buffer;
             }
             if(!remove || !result || !result._id) {
                 if(!result || !result._id){
@@ -261,7 +261,7 @@ var getPromise = function (key, order, index, remove, skip){
             { key : key},
           $orderby:
             { date : order }},
-        {headers:false},
+        {headers : false},
         { limit : 1 , skip : index},
         callback
     )
@@ -295,7 +295,10 @@ var getEmptyPromise = function (key, order, index){
 
 var insertPromise = function(obj, binary){
     var d = q.defer();
-    if(binary) obj.value = Binary(obj.value);
+    if(binary) {
+        obj.binary = Binary(obj.value);
+        delete obj.value;
+    };
     var callback = function(error, result){
         if(error) d.reject(error);
         else d.resolve(result);
