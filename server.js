@@ -49,7 +49,7 @@ var isSetFalse = function(value, alt){
 
 //Set vars from .env file (if present)
 if(argv["env"]){
-    var envFile = issetTrue(argv["env"]);
+    var envFile = issetTrue(argv["env"])
     ? __dirname + '/.env'
     : issetTrue(argv["env"]);
     try{
