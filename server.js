@@ -77,9 +77,9 @@ var channels = {
 //Set options based on environmental variables
 var OPTIONS = {
     PORT : argv.port || process.env.PORT || 8080,
-    BASETYPE : argv.basetype || process.env.CHARSET | "text/plain",
-    CHARSET : argv.charset || process.env.CHARSET || "utf-8",
-    BODYLIMIT : argv.bodylimit || process.env.BODYLIMIT || "16mb",
+    BASETYPE : argv["base-type"] || process.env.BASETYPE || "",
+    CHARSET : argv["charset"] || process.env.CHARSET || "utf-8",
+    BODYLIMIT : argv["body-limit"] || process.env.BODYLIMIT || "16mb",
     COLLECTIONNAME : argv["collection-name"] || process.env.COLLECTIONNAME || "_",
     STATIC : isSetTrue(argv["static"]) ? true
             : isSetTrue(process.env.STATIC) ? true

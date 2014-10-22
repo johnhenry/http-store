@@ -3,6 +3,10 @@
 ##Changelog
 The change version _roughly_ conforms to semantic versioning.
 
+
+###0.3.2
++ Fixed bug setting base type
+
 ###0.3.1
 + Added - Exposed Storage time as Last-Modified response header.
 + Added - Added Ability to store date directly with "Date" request header if ALLOWSETDATE is set true.
