@@ -1,4 +1,3 @@
-#DEQUEUE
 export QUEUE=false
 export BINARY=false
 export TYPE=''

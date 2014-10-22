@@ -198,9 +198,9 @@ You may insert a request's body into the database with the following commands:
 Example: Insert an image
 
 ```
-curl -X PUT <server address>/flowers/rose.jpg -H "Content-Type: image/jpeg; charset=binary" --data-binary @/full/path/to/http-store/example/rose.jpg
+curl -X PUT <server address>/flowers/rose.jpg -H "Content-Type: image/jpeg; charset=binary" --data-binary @./test/media/rose.jpg
 ```
-Note: The "@" is necessary as is the full path.
+Note: The "@" is literal.
 
 #### Retrieving
 
@@ -233,9 +233,9 @@ You may enqueue a into the database item with the following commands:
 Example: Enqueue successive images
 
 ```
-curl -X POST http://127.0.0.1:8080/listofflowers -H "Content-Type: image/png; charset=binary" --data-binary @/full/path/to/http-store/example/daisy.jpg
+curl -X POST http://127.0.0.1:8080/listofflowers -H "Content-Type: image/jpeg; charset=binary" --data-binary @./test/media/daisy.jpg
 
-curl -X POST http://127.0.0.1:8080/listofflowers -H "Content-Type: image/jpeg; charset=binary" --data-binary @/full/path/to/http-store/example/rose.jpg
+curl -X POST http://127.0.0.1:8080/listofflowers -H "Content-Type: image/jpeg; charset=binary" --data-binary @./test/media/rose.jpg
 ```
 
 #### Dequeueing
