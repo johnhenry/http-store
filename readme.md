@@ -54,7 +54,7 @@ npm start
 
 By default, the server will run at 127.0.0.1:8080
 
-Options will be set via _environmental variables_ and [optionally] a _.env_ file.
+Options will be set via _environmental variables_.
 
 #####Running via node
 1. In a terminal type:
@@ -68,7 +68,7 @@ node server.js
 
 By default, the server will run at 127.0.0.1:8080
 
-Options will be set via _command line arguments_, _environmental variables_, and [optionally] a _.env_ file.
+Options can be set via _command line arguments_ and/or _environmental variables_.
 
 #####Running via foreman
 
@@ -81,18 +81,19 @@ foreman start
 
 By default, the server will run at 127.0.0.1:5000
 
-Options will be set via an optional _.env_ file.
+Options will be set via an optional _.env_ file located in the root directory.
+Command line parameters may be set by modifying the _Procfile_ file.
 
-###Install CLI App
+###CLI Application
 
 1. In a terminal type:
 ```
 npm install -g http-store
 ```
 
-2. Run
+2. Run with command line arguments
 ```
-http-store --mongourl=<mongo database url>
+http-store [arguments]
 ```
 
 Example:
@@ -104,7 +105,7 @@ http-store --mongourl=mongodb://username:password@127.0.0.1:27017/http-store
 
 ##API
 
-###NOTE note on queues and stacks.
+###Note on queues and stacks.
 While standard HTTP Methods map well to traditional key-value store options of (GET, PUT, DELETE <=> Retrieve, Insert, Remove), this is not immediately true with queues and stacks. However, by adding a few url parameters, we can easily emulate this functionality. In fact, once could implement a full que or stack with just a subset of the methods (such as in the traditional browser where only GET and POST are allowed.)
 
 ###Standard HTTP Methods
@@ -402,7 +403,7 @@ Following this command, all further messages will be saved as objects
 Example: Enqueue and HTML title (set the type first)
 
 ```
-wscat -c http://127.0.0.1:8080/html/snippits
+wscat -c http://127.0.0.1:8080/html
 >type text/html
 >enqueue <h1>THIS IS A TITLE</h1>
 >
@@ -411,7 +412,7 @@ wscat -c http://127.0.0.1:8080/html/snippits
 Example: Listen to channel and pop last added item
 
 ```
-wscat -c http://127.0.0.1:8080/html/snippits
+wscat -c http://127.0.0.1:8080/html
 >listen
    < true
 >pop

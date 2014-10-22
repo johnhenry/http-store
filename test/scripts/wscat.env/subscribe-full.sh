@@ -1,3 +1,4 @@
+#Fully subscribe to publically popped/dequed objects.
 export QUEUE=false
 export BINARY=false
 export TYPE=''

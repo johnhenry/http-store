@@ -15,10 +15,7 @@ var argv = require('yargs')
     .boolean("capture-headers")
     .boolean("http-pop")
     .boolean("allow-set-headers")
-    .boolean("enable-env-file")
-    .default("enable-env-file", true)
-    .alias("e","enable-env-file")
-    .alias("f","env-file")
+    .alias("e","env")
     .argv
 var LOG = argv.verbose ? console.log : function(){};
 ////
@@ -31,21 +28,6 @@ var mongodb = require('mongodb');
 var q = require('q');
 var express = require('express');
 var rawbody = require('raw-body');
-////
-//Options
-////
-
-//Set vars from .env file (if present)
-if(argv["enable-env-file"]){
-    var envFile = (argv["env-file"]) || __dirname + '/.env';
-    try{
-        require('node-env-file')(envFile);
-        LOG("Additional Environment Variables Loaded from: ", envFile);
-    }catch(e){
-        LOG("No Enviornemnt file ("+envFile+") found.", e);
-    };
-}
-
 var isInt = function(value) {
   return !isNaN(value) &&
          parseInt(Number(value)) == value &&
@@ -61,6 +43,26 @@ var isSetFalse = function(value, alt){
     : String(value).toLowerCase() !== "true" ? alt
     : false
 }
+////
+//Options
+////
+
+//Set vars from .env file (if present)
+if(argv["env"]){
+    var envFile = issetTrue(argv["env"]);
+    ? __dirname + '/.env'
+    : issetTrue(argv["env"]);
+    try{
+        require('node-env-file')(
+            envFile,
+            {overwrite: true, verbose :argv["verbose"]});
+        LOG("Additional Environment Variables Loaded from: " + envFile);
+    }catch(e){
+        LOG("No Enviornemnt file (" + envFile + ") found.", e);
+    };
+}
+
+
 
 var router = express.Router();
 var MongoClient = mongodb.MongoClient;

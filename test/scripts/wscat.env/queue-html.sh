@@ -1,3 +1,4 @@
+#Input HTML on this channel
 export QUEUE=true
 export BINARY=false
 export TYPE='text/html'

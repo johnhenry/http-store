@@ -3,6 +3,11 @@
 ##Changelog
 The change version _roughly_ conforms to semantic versioning.
 
+###0.3.3
++ Modified -e, --env command line parameter used to specify environment file
+  Updated documentation
+  Modified test scripts
+
 ###0.3.2
 + Fixed bug setting base type
 
