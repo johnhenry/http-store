@@ -99,7 +99,7 @@ http-store [arguments]
 Example:
 
 ```
-http-store --mongourl=mongodb://username:password@127.0.0.1:27017/http-store
+http-store --db-url=mongodb://username:password@127.0.0.1:27017/http-store
 ```
 
 
@@ -127,7 +127,7 @@ Retrive values from the database via the __GET__ method
 Content-Type header will be set according to requested type or stored type if not requested.
 
 - Additional parameters
-    - ?dequeue=false|true - treat item as a queue and remove value from database when retrieving. Requires option UNSAFEGET to be set true. (Works exactly like DELETE ?dequeue=true)
+    - ?dequeue=false|true - treat item as a queue and remove value from database when retrieving. Requires option UNSAFE_GET to be set true. (Works exactly like DELETE ?dequeue=true)
     - ?pop=false|true - treat item as a queue and start from end instead of the beginning. Can be combined with dequeue to work as a stack.
     - ?index=0|<uint> -  treat item as a queue and retrieve specific item by order placed in index. Can be combined with pop to start from end of stack, and dequeue to remove specific items.
 
@@ -159,11 +159,11 @@ Send a json object similar to the following to change settings at run time. Unse
 ```
 {
     "CHARSET": <string>,
-    "BASETYPE": <string>,
-    "BODYLIMIT": <string>,
-    "UNSAFEGET": <boolean>,
+    "BASE_TYPE": <string>,
+    "BODY_LIMIT": <string>,
+    "UNSAFE_GET": <boolean>,
     "PEEK": <boolean>,
-    "CAPTUREHEADERS": <boolean>,
+    "CAPTURE_HEADERS": <boolean>,
 }
 ```
 
@@ -247,7 +247,7 @@ You may insert a request's body into the database with the following commands:
     GET <server address>/<key>?dequeue=true
     DELETE <server address>/<key>?dequeue=true
 ```
-(Note: This will only work for the GET method if you have the UNSAFEGET option set.)
+(Note: This will only work for the GET method if you have the UNSAFE_GET option set.)
 
 
 Example : Dequeue successive images
@@ -443,13 +443,13 @@ Options:
     --(no-)capture-headers  Capture and store all headers along with body.
     --(no-)http-pop         Enables popping by default via GET/DELETE
     --(no-)allow-set-date   Allow date to be set via request headers
-    --mongoprotocol         Protocol for connecting to mongo host.
-    --mongohost             MongoDB database host.
-    --mongouser             MongoDB database user name.
-    --mongopass             MongoDB database password.
-    --mongoport             MongoDB connection port.
-    --mongobase             MongoDB database name.
-    --mongourl              MongoDB database full URL. Overwrites all other MongoDB related fields if set.
+    --db-protocol         Protocol for connecting to mongo host.
+    --db-host             MongoDB database host.
+    --db-user             MongoDB database user name.
+    --db-pass             MongoDB database password.
+    --db-port             MongoDB connection port.
+    --db-base             MongoDB database name.
+    --db-url              MongoDB database full. Overwrites all other DB related fields if set.
 ```
 
 ###Environment
@@ -459,22 +459,22 @@ Set these options in your environment
 If not set on the command line, the following options may set as environmental variables.
 
 - PORT
-- BASETYPE
+- BASE_TYPE
 - CHARSET
-- BODYLIMIT
+- BODY_LIMIT
 - STATIC
 - PEEK
-- UNSAFEGET
-- CAPTUREHEADERS
+- UNSAFE_GET
+- CAPTURE_HEADERS
 - HTTPPOP
-- ALLOWSETDATE
-- MONGOPROTOCOL
-- MONGOUSER
-- MONGOPASS
-- MONGOHOST
-- MONGOPORT
-- MONGOBASE
-- MONGOURL
+- ALLOW_SET_DATE
+- DB_PROTOCOL
+- DB_USER
+- DB_PASS
+- DB_HOST
+- DB_PORT
+- DB_BASE
+- DB_URL
 
 Any unset environmental variable may be set from a .env file that you create in the root directory.
 

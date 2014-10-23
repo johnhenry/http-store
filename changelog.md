@@ -5,6 +5,7 @@ The change version _roughly_ conforms to semantic versioning.
 
 ###0.4.0
 + Modified - Reorganized Documentation
++ Modified - "DB_" replaces "MONGO" in options variable names
 + Modified - Environment Variables have underscores where appropriate
 + Modified - HTTP_DEQUEUEUE replaces HTTPPOP (popping now enabled by default)
 + Modified - Binary files now stored in separate binary category in database

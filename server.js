@@ -79,40 +79,39 @@ var channels = {
 //Set options based on environmental variables
 var OPTIONS = {
     PORT : argv.port || process.env.PORT || 8080,
-    BASETYPE : argv["base-type"] || process.env.BASETYPE || "",
+    BASE_TYPE : argv["base-type"] || process.env.BASE_TYPE || "",
     CHARSET : argv["charset"] || process.env.CHARSET || "utf-8",
-    BODYLIMIT : argv["body-limit"] || process.env.BODYLIMIT || "16mb",
-    COLLECTIONNAME : argv["collection-name"] || process.env.COLLECTIONNAME || "_",
+    BODY_LIMIT : argv["body-limit"] || process.env.BODY_LIMIT || "16mb",
+    COLLECTION_NAME : argv["collection-name"] || process.env.COLLECTION_NAME || "_",
     STATIC : isSetTrue(argv["static"]) ? true
             : isSetTrue(process.env.STATIC) ? true
             : String(process.env.STATIC).toLowerCase() === "override"  ? "override"
             : String(argv["static"]).toLowerCase() === "override"  ? "override"
             : false,
-    UNSAFEGET : isSetTrue(argv["unsafe-get"])
-        || isSetTrue(process.env.UNSAFEGET)
+    UNSAFE_GET : isSetTrue(argv["unsafe-get"])
+        || isSetTrue(process.env.UNSAFE_GET)
         || false,
-    CAPTUREHEADERS : isSetTrue(argv["capture-headers"])
-        || isSetTrue(process.env.CAPTUREHEADERS)
+    CAPTURE_HEADERS : isSetTrue(argv["capture-headers"])
+        || isSetTrue(process.env.CAPTURE_HEADERS)
         || false,
     HTTP_DEQUEUE : isSetTrue(argv["http-dequeue"])
         || isSetTrue(process.env.HTTP_DEQUEUE)
         || false,
-    ALLOWSETDATE : isSetTrue(argv["allow-set-date"])
-        || isSetTrue(process.env.ALLOWSETDATE)
+    ALLOW_SET_DATE : isSetTrue(argv["allow-set-date"])
+        || isSetTrue(process.env.ALLOW_SET_DATE)
         || false,
     PEEK : isSetFalse(argv["peek"]) ? false
         : isSetFalse(process.env.PEEK) ? false
         : true,
-    MONGOURL : argv.mongourl
-        || (argv.mongourl || process.env.MONGOURL)
-        || (argv.mongoprotocol
-            || process.env.MONGOPROTOCOL
+    DB_URL : (argv["db-url"] || process.env.DB_URL)
+        || (argv["db-protocol"]
+            || process.env.DB_PROTOCOL
             || "mongodb") + "://"
-        + (argv.mongouser || process.env.MONGOUSER || "") + ":"
-        + (argv.mongopass || process.env.MONGOPASS || "") + "@"
-        + (argv.mongohost || process.env.MONGOHOST || "127.0.0.1") +":"
-        + (argv.mongoport || process.env.MONGOPORT || 27017) + "/"
-        + (argv.mongobase || process.env.MONGOBASE || "")
+        + (argv["db-user"] || process.env.DB_USER || "") + ":"
+        + (argv["db-pass"] || process.env.DB_PASS || "") + "@"
+        + (argv["db-host"] || process.env.DB_HOST || "127.0.0.1") +":"
+        + (argv["db-port"] || process.env.DB_PORT || 27017) + "/"
+        + (argv["db-name"] || process.env.DB_NAME || "")
 }
 ////
 //Application
@@ -120,12 +119,12 @@ var OPTIONS = {
 
 var setOptions = function(opts, first){
     var diff = {};
-    if(opts.BASETYPE !== undefined){
-        diff.BASETYPE = {
-            old : OPTIONS.BASETYPE,
-            new : String(opts.BASETYPE)
+    if(opts.BASE_TYPE !== undefined){
+        diff.BASE_TYPE = {
+            old : OPTIONS.BASE_TYPE,
+            new : String(opts.BASE_TYPE)
         }
-        OPTIONS.BASETYPE = diff.BASETYPE.new
+        OPTIONS.BASE_TYPE = diff.BASE_TYPE.new
     }
     if(opts.CHARSET !== undefined){
         diff.CHARSET = {
@@ -134,34 +133,34 @@ var setOptions = function(opts, first){
         }
         OPTIONS.CHARSET = diff.CHARSET.new;
     }
-    if(opts.BODYLIMIT !== undefined){
-        diff.BODYLIMIT = {
-            old : OPTIONS.BODYLIMIT,
-            new : String(opts.BODYLIMIT)
+    if(opts.BODY_LIMIT !== undefined){
+        diff.BODY_LIMIT = {
+            old : OPTIONS.BODY_LIMIT,
+            new : String(opts.BODY_LIMIT)
         }
-        OPTIONS.BODYLIMIT = diff.BODYLIMIT.new
+        OPTIONS.BODY_LIMIT = diff.BODY_LIMIT.new
     }
-    if(opts.COLLECTIONNAME !== undefined){
-        diff.COLLECTIONNAME = {
-            old : OPTIONS.COLLECTIONNAME,
-            new : String(opts.COLLECTIONNAME) || "_"
+    if(opts.COLLECTION_NAME !== undefined){
+        diff.COLLECTION_NAME = {
+            old : OPTIONS.COLLECTION_NAME,
+            new : String(opts.COLLECTION_NAME) || "_"
         }
-        dbcollection = db.collection(diff.COLLECTIONNAME.new);
-        OPTIONS.COLLECTIONNAME = diff.COLLECTIONNAME.new;
+        dbcollection = db.collection(diff.COLLECTION_NAME.new);
+        OPTIONS.COLLECTION_NAME = diff.COLLECTION_NAME.new;
     }
-    if(opts.UNSAFEGET !== undefined){
-        diff.UNSAFEGET = {
-            old : OPTIONS.UNSAFEGET,
-            new : !!opts.UNSAFEGET
+    if(opts.UNSAFE_GET !== undefined){
+        diff.UNSAFE_GET = {
+            old : OPTIONS.UNSAFE_GET,
+            new : !!opts.UNSAFE_GET
         }
-        OPTIONS.UNSAFEGET = diff.UNSAFEGET.new;
+        OPTIONS.UNSAFE_GET = diff.UNSAFE_GET.new;
     }
-    if(opts.CAPTUREHEADERS !== undefined){
-        diff.CAPTUREHEADERS = {
-            old : OPTIONS.CAPTUREHEADERS,
-            new : !!opts.CAPTUREHEADERS
+    if(opts.CAPTURE_HEADERS !== undefined){
+        diff.CAPTURE_HEADERS = {
+            old : OPTIONS.CAPTURE_HEADERS,
+            new : !!opts.CAPTURE_HEADERS
         }
-        OPTIONS.CAPTUREHEADERS = diff.CAPTUREHEADERS.new;
+        OPTIONS.CAPTURE_HEADERS = diff.CAPTURE_HEADERS.new;
     }
     if(opts.HTTP_DEQUEUE !== undefined){
         diff.HTTP_DEQUEUE = {
@@ -170,12 +169,12 @@ var setOptions = function(opts, first){
         }
         OPTIONS.HTTP_DEQUEUE = diff.HTTP_DEQUEUE.new;
     }
-    if(opts.ALLOWSETDATE !== undefined){
-        diff.ALLOWSETDATE = {
-            old : OPTIONS.ALLOWSETDATE,
-            new : !!opts.ALLOWSETDATE
+    if(opts.ALLOW_SET_DATE !== undefined){
+        diff.ALLOW_SET_DATE = {
+            old : OPTIONS.ALLOW_SET_DATE,
+            new : !!opts.ALLOW_SET_DATE
         }
-        OPTIONS.ALLOWSETDATE = diff.ALLOWSETDATE.new;
+        OPTIONS.ALLOW_SET_DATE = diff.ALLOW_SET_DATE.new;
     }
     if(opts.PEEK !== undefined){
         diff.PEEK = {
@@ -389,7 +388,7 @@ var placeOnChannel = function(key, message, type, binary){
     var obj = {
         key : key,
         value : message,
-        date : OPTIONS.ALLOWSETDATE ? headers["date"]
+        date : OPTIONS.ALLOW_SET_DATE ? headers["date"]
         || Date.now() : Date.now(),
         type: type,
     }
@@ -602,12 +601,12 @@ var render = function(response, obj, status, key){
 var rawBody = function(request, response, next){
     var contentType =  (request.headers["content-type"] || "")
     .split(" ").join("").split(";");
-    request.baseType = contentType[0] || OPTIONS.BASETYPE;
+    request.BASE_TYPE = contentType[0] || OPTIONS.BASE_TYPE;
     request.encoding = ((contentType[1] || "").split("charset=")[1] || "").toLowerCase()
         || OPTIONS.CHARSET;
     rawbody(request, {
         length: request.length,
-        limit: OPTIONS.BODYLIMIT || undefined,
+        limit: OPTIONS.BODY_LIMIT || undefined,
         encoding: request.encoding !== "binary" ? request.encoding : null
     },function(error, body){
         request.raw = body;
@@ -624,7 +623,7 @@ var getFunc = function(request, response){
     if(request.params[0]) key += request.params[0];
     var obj = {
         key : key,
-        date : OPTIONS.ALLOWSETDATE ? headers["date"]
+        date : OPTIONS.ALLOW_SET_DATE ? headers["date"]
         || Date.now() : Date.now(),
         type : request.headers["content-type"]
     };
@@ -637,17 +636,17 @@ var getFunc = function(request, response){
         order = isSetTrue(request.query.pop) ? -1 : 1;
         remove =
             (request.method === "DELETE"
-            || (OPTIONS.UNSAFEGET && isSetTrue(request.query.dequeue)))
+            || (OPTIONS.UNSAFE_GET && isSetTrue(request.query.dequeue)))
             && (request.method !== "HEAD");
     }else{//Default
         order = isSetTrue(request.query.dequeue) ? 1 : -1;
         remove =
             (request.method === "DELETE"
-            || (OPTIONS.UNSAFEGET && isSetTrue(request.query.pop)))
+            || (OPTIONS.UNSAFE_GET && isSetTrue(request.query.pop)))
             && (request.method !== "HEAD");
     }
     if(!OPTIONS.PEEK
-         && OPTIONS.UNSAFEGET
+         && OPTIONS.UNSAFE_GET
          && request.method === "GET") remove = true;
     respond = request.method === "GET"
         || request.method === "HEAD"
@@ -717,11 +716,11 @@ var putFunc = function(request, response){
     var obj = {
         key : key,
         value : request.raw,
-        date : OPTIONS.ALLOWSETDATE ? headers["date"]
+        date : OPTIONS.ALLOW_SET_DATE ? headers["date"]
         || Date.now() : Date.now(),
         type : request.headers["content-type"]
     }
-    if(OPTIONS.CAPTUREHEADERS) obj.headers = request.headers;
+    if(OPTIONS.CAPTURE_HEADERS) obj.headers = request.headers;
     var remove = request.method === "POST" ?
         isSetFalse(request.query.enqueue) :
         !isSetTrue(request.query.enqueue);
@@ -765,7 +764,7 @@ var putFunc = function(request, response){
 var traceFunc = function(request, response){
     var key = request.params.key;
     var obj = {
-        date : OPTIONS.ALLOWSETDATE ? headers["date"]
+        date : OPTIONS.ALLOW_SET_DATE ? headers["date"]
         || Date.now() : Date.now(),
         value : request.encoding === "binary" ? Binary(request.raw) : request.raw,
         type : request.headers["content-type"]
@@ -777,7 +776,7 @@ var traceFunc = function(request, response){
 var patchFunc = function(request, response){
     var obj = {
         value : request.raw,
-        date : OPTIONS.ALLOWSETDATE ? headers["date"]
+        date : OPTIONS.ALLOW_SET_DATE ? headers["date"]
         || Date.now() : Date.now(),
         type : "application/json"
     }
@@ -806,7 +805,7 @@ if(OPTIONS.STATIC)
 
 //Disconnect Mongo Client
 MongoClient.connect(
-    OPTIONS.MONGOURL,
+    OPTIONS.DB_URL,
     function(error, database){
         if(error){
             throw new Error(error);

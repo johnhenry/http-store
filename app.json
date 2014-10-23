@@ -11,7 +11,7 @@
   ],
   "repository": "https://github.com/johnhenry/http-store",
   "env": {
-    "COLLECTIONNAME": {
+    "COLLECTION_NAME": {
       "description": "Name of collection in database to use.",
       "value" : "_",
       "required" : false
@@ -21,7 +21,7 @@
         "value" : "utf-8",
         "required" : false
     },
-    "BODYLIMIT": {
+    "BODY_LIMIT": {
         "description": "Limit of body to read",
         "value" : "1mb",
         "required" : false
@@ -36,63 +36,63 @@
         "value" : "true",
         "required" : false
     },
-    "BASETYPE": {
+    "BASE_TYPE": {
         "description": "Default type assigned to stored objects.",
         "value" : "text/plain",
         "required" : false
     },
-    "UNSAFEGET": {
+    "UNSAFE_GET": {
         "description": "Enables removal of items through GET get method by appending '?dequeue=true' to url if set.",
         "value" : "true",
         "required" : false
     },
-    "CAPTUREHEADERS":{
+    "CAPTURE_HEADERS":{
         "description": "Store request headers in database alonside value.",
         "value" : "true",
         "required" : false
     },
-    "HTTPPOP":{
-        "description": "GET/DELETE methods will pop instead of dequeue by defaut.",
+    "HTTP_DEQUEUE":{
+        "description": "GET/DELETE methods will dequeue instead of pop by defaut.",
         "value" : "false",
         "required" : false
     },
-    "ALLOWSETDATE":{
+    "ALLOW_SET_DATE":{
         "description": "Allows storage date to be set. ",
         "value" : "false",
         "required" : false
     },
-    "MONGOPROTOCOL": {
+    "DB_PROTOCOL": {
         "description": "Protocol for connecting to mongo host.",
         "value" : "mongodb",
         "required" : false
     },
-    "MONGOHOST": {
+    "DB_HOST": {
         "description": "MongoDB database host.",
         "value" : "",
         "required" : false
     },
-    "MONGOBASE": {
+    "DB_NAME": {
         "description": "MongoDB database name.",
         "value" : "",
         "required" : false
     },
-    "MONGOUSER": {
+    "DB_USER": {
         "description": "MongoDB database user name.",
         "value" : "",
         "required" : false
     },
-    "MONGOPASS": {
+    "DB_PASS": {
         "description": "MongoDB database password.",
         "value" : "",
         "required" : false
     },
-    "MONGOPORT": {
+    "DB_PORT": {
         "description": "MongoDB connection port.",
         "value" : "27017",
         "required" : false
     },
-    "MONGOFULL": {
-        "description": "MongoDB database full URL. Overwrites all other MongoDB related fields if set.",
+    "DB_FULL": {
+        "description": "MongoDB database full URL. Overwrites all other DB related fields if set.",
         "value" : "",
         "required" : false
     }
