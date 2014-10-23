@@ -1,10 +1,12 @@
 #Todo
-- Integrate waterline adapter
-- Readme - Integrate settings with installation section
-- Intgrate or better differentiate API and Usage sections
+
+- Reorganize Docs
+- Add Dockerfile
 - Add CORS
 - Security Model Oauth2/Bitauth?
 - Create Tests
+- LOG Connections for sockets
+- Integrate waterline adapter
 
 #Possible Bugs
 - No LOG upon delete fron database?

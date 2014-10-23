@@ -13,7 +13,7 @@ var argv = require('yargs')
     .boolean("peek")
     .default("peek", true)
     .boolean("capture-headers")
-    .boolean("http-pop")
+    .boolean("http-dequeue")
     .boolean("allow-set-headers")
     .alias("e","env")
     .argv
@@ -94,8 +94,8 @@ var OPTIONS = {
     CAPTUREHEADERS : isSetTrue(argv["capture-headers"])
         || isSetTrue(process.env.CAPTUREHEADERS)
         || false,
-    HTTPPOP : isSetTrue(argv["http-pop"])
-        || isSetTrue(process.env.HTTPPOP)
+    HTTP_DEQUEUE : isSetTrue(argv["http-dequeue"])
+        || isSetTrue(process.env.HTTP_DEQUEUE)
         || false,
     ALLOWSETDATE : isSetTrue(argv["allow-set-date"])
         || isSetTrue(process.env.ALLOWSETDATE)
@@ -163,12 +163,12 @@ var setOptions = function(opts, first){
         }
         OPTIONS.CAPTUREHEADERS = diff.CAPTUREHEADERS.new;
     }
-    if(opts.HTTPPOP !== undefined){
-        diff.HTTPPOP = {
-            old : OPTIONS.HTTPPOP,
-            new : !!opts.HTTPPOP
+    if(opts.HTTP_DEQUEUE !== undefined){
+        diff.HTTP_DEQUEUE = {
+            old : OPTIONS.HTTP_DEQUEUE,
+            new : !!opts.HTTP_DEQUEUE
         }
-        OPTIONS.HTTPPOP = diff.HTTPPOP.new;
+        OPTIONS.HTTP_DEQUEUE = diff.HTTP_DEQUEUE.new;
     }
     if(opts.ALLOWSETDATE !== undefined){
         diff.ALLOWSETDATE = {
@@ -633,17 +633,17 @@ var getFunc = function(request, response){
     var order;
     var remove;
     var respond;
-    if(OPTIONS.HTTPPOP){
-        order = isSetTrue(request.query.dequeue) ? 1 : -1;
-        remove =
-            (request.method === "DELETE"
-            || (OPTIONS.UNSAFEGET && isSetTrue(request.query.pop)))
-            && (request.method !== "HEAD");
-    }else{
+    if(OPTIONS.HTTP_DEQUEUE){
         order = isSetTrue(request.query.pop) ? -1 : 1;
         remove =
             (request.method === "DELETE"
             || (OPTIONS.UNSAFEGET && isSetTrue(request.query.dequeue)))
+            && (request.method !== "HEAD");
+    }else{//Default
+        order = isSetTrue(request.query.dequeue) ? 1 : -1;
+        remove =
+            (request.method === "DELETE"
+            || (OPTIONS.UNSAFEGET && isSetTrue(request.query.pop)))
             && (request.method !== "HEAD");
     }
     if(!OPTIONS.PEEK
