@@ -7,14 +7,14 @@ HTTP Key-Value Store on top of MongoDB
 - Connect to a MongoDB Instance using HTTP and Web Sockets
 - Already Compatible with zillions of applications and devices that already speak these standards
 - Send data between http and websocket clients
-
+https://github.com/johnhenry/http-store/blob/master/docs/docs/apihttp.md
 ##Other Docs:
-+ [HTTP API](https://github.com/johnhenry/http-store/blob/master/apihttp.md)
-+ [Websocket API](https://github.com/johnhenry/http-store/blob/master/apiws.md)
-+ [Server Settings](https://github.com/johnhenry/http-store/blob/master/settings.md)
++ [HTTP API](https://github.com/johnhenry/http-store/blob/master/docs/apihttp.md)
++ [Websocket API](https://github.com/johnhenry/http-store/blob/master/docs/apiws.md)
++ [Server Settings](https://github.com/johnhenry/http-store/blob/master/docs/settings.md)
 + [Tested Applications](https://github.com/johnhenry/http-store/blob/master/docs/applications.md)
-+ [Glossary](https://github.com/johnhenry/http-store/blob/master/glossary.md)
-+ [Architecture](https://github.com/johnhenry/http-store/blob/master/architecture.md)
++ [Glossary](https://github.com/johnhenry/http-store/blob/master/docs/glossary.md)
++ [Architecture](https://github.com/johnhenry/http-store/blob/master/docs/architecture.md)
 
 ##Prerequesites
 Befor you deploy anywhere, you must have a mongodb server instance running somewhere.
