@@ -51,7 +51,7 @@
         "value" : "true",
         "required" : false
     },
-    "HTTP_DEQUEUE":{
+    "HTTP_QUEUE":{
         "description": "GET/DELETE methods will dequeue instead of pop by defaut.",
         "value" : "false",
         "required" : false

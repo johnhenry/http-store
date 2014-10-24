@@ -13,7 +13,7 @@ var argv = require('yargs')
     .boolean("peek")
     .default("peek", true)
     .boolean("capture-headers")
-    .boolean("http-dequeue")
+    .boolean("http-queue")
     .boolean("allow-set-headers")
     .alias("e","env")
     .argv
@@ -94,8 +94,8 @@ var OPTIONS = {
     CAPTURE_HEADERS : isSetTrue(argv["capture-headers"])
         || isSetTrue(process.env.CAPTURE_HEADERS)
         || false,
-    HTTP_DEQUEUE : isSetTrue(argv["http-dequeue"])
-        || isSetTrue(process.env.HTTP_DEQUEUE)
+    HTTP_QUEUE : isSetTrue(argv["http-queue"])
+        || isSetTrue(process.env.HTTP_QUEUE)
         || false,
     ALLOW_SET_DATE : isSetTrue(argv["allow-set-date"])
         || isSetTrue(process.env.ALLOW_SET_DATE)
@@ -162,12 +162,12 @@ var setOptions = function(opts, first){
         }
         OPTIONS.CAPTURE_HEADERS = diff.CAPTURE_HEADERS.new;
     }
-    if(opts.HTTP_DEQUEUE !== undefined){
-        diff.HTTP_DEQUEUE = {
-            old : OPTIONS.HTTP_DEQUEUE,
-            new : !!opts.HTTP_DEQUEUE
+    if(opts.HTTP_QUEUE !== undefined){
+        diff.HTTP_QUEUE = {
+            old : OPTIONS.HTTP_QUEUE,
+            new : !!opts.HTTP_QUEUE
         }
-        OPTIONS.HTTP_DEQUEUE = diff.HTTP_DEQUEUE.new;
+        OPTIONS.HTTP_QUEUE = diff.HTTP_QUEUE.new;
     }
     if(opts.ALLOW_SET_DATE !== undefined){
         diff.ALLOW_SET_DATE = {
@@ -473,12 +473,10 @@ var socketConnection = function(socket) {
                 //all further messages will be enqueued
                 socket.att.queue = true;
                 socket.att.binary = isSetTrue(message[0], socket.att.binary);
-                socket.att.public = isSetTrue(message[1], socket.att.public);
-                socket.att.type = message[2] || socket.att.type;
+                socket.att.type = message[1] ? message[1] :  socket.att.type;
                 socket.send(
                     "+queue"
                     + " " + (socket.att.binary ? "+binary" : "-binary")
-                    + " " + (socket.att.public ? "+public" : "-public")
                     + " " + socket.att.type);
                 break;
             //Receiving
@@ -632,7 +630,7 @@ var getFunc = function(request, response){
     var order;
     var remove;
     var respond;
-    if(OPTIONS.HTTP_DEQUEUE){
+    if(OPTIONS.HTTP_QUEUE){
         order = isSetTrue(request.query.pop) ? -1 : 1;
         remove =
             (request.method === "DELETE"
