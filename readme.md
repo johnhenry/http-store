@@ -7,7 +7,7 @@ HTTP Key-Value Store on top of MongoDB
 - Connect to a MongoDB Instance using HTTP and Web Sockets
 - Already Compatible with zillions of applications and devices that already speak these standards
 - Send data between http and websocket clients
-https://github.com/johnhenry/http-store/blob/master/docs/docs/apihttp.md
+
 ##Other Docs:
 + [HTTP API](https://github.com/johnhenry/http-store/blob/master/docs/apihttp.md)
 + [Websocket API](https://github.com/johnhenry/http-store/blob/master/docs/apiws.md)
