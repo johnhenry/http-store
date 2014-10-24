@@ -15,9 +15,16 @@ Set these options from the commandline
     </tr>
     <tr>
         <td>-v, --verbose</td>
-        <td>(N/A)</td>
+        <td>_(N/A)_</td>
         <td>Print verbose output to the command line.</td>
         <td>false</td>
+        <td>no</td>
+    </tr>
+    <tr>
+        <td>-e, --env</td>
+        <td>_(N/A)_</td>
+        <td>Use file to set environment variables</td>
+        <td>_(EMPTY)_</td>
         <td>no</td>
     </tr>
     <tr>
@@ -79,7 +86,7 @@ Set these options from the commandline
         <td>CAPTURE_HEADERS</td>
         <td>Capture and store all headers along with body.</td>
         <td>false</td>
-        <td>true</td>
+        <td>yes</td>
     </tr>
     <tr>
         <td>--(no-)http-queue </td>

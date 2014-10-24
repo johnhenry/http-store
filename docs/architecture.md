@@ -1,43 +1,42 @@
 #Sample Architecture
-
-
 <table>
     <tr>
         <td colspan=5>
-        mongo db instance<br/>
+        MONGO DB INSTANCE<br/>
+        Can exist remotely or locally
         </td>
     </tr>
     <tr>
         <td colspan=3>
-            http-store instance<br/>
+            HTTP-STORE INSTANCE<br/>
         </td>
         <td colspan=2>
-            http-store instance<br/>
+            HTTP-STORE INSTANCE<br/>
         </td>
     </tr>
     <tr>
         <td>
-            http-client
+            HTTP-CLIENT
             <br/>
-            (Advanced REST Client)
+            (browser extension)
         </td>
         <td>
-            ws-client
+            WS-CLIENT
             <br/>
             (wscat)
         </td>
         <td>
-            http-client
+            HTTP-CLIENT
             <br/>
             (curl)
         </td>
         <td>
-            ws-client
+            WS-CLIENT
             <br/>
-            (Dark Web Socket Terminal)
+            (browser extension)
         </td>
         <td>
-            ws-client
+            HTTP-CLIENT
             <br/>
             (a web browser)
         </td>
