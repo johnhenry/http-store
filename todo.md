@@ -1,12 +1,5 @@
 #Todo
-
-- Reorganize Docs
-- Add Dockerfile
-- Add CORS
-- Security Model Oauth2/Bitauth?
+- Selectively Enable HTTP and WEBSOCKETS
 - Create Tests
-- LOG Connections for sockets
+- Add Dockerfile
 - Integrate waterline adapter
-
-#Possible Bugs
-- No LOG upon delete fron database?

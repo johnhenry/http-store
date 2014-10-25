@@ -63,15 +63,13 @@ if(argv["env"]){
 }
 
 
-
+var socketMountPoint = "";
 var router = express.Router();
 var MongoClient = mongodb.MongoClient;
 var ObjectID = mongodb.ObjectID;
 var Binary = mongodb.Binary;
-var wss;
 var db;
 var dbcollection;
-var app = express();
 var channels = {
     listen : {},
     subscribe : {}
@@ -133,17 +131,17 @@ var setOptions = function(opts, first){
         }
         OPTIONS.CHARSET = diff.CHARSET.new;
     }
-    if(opts.BODY_LIMIT !== undefined){
+    if(opts.BODY_LIMIT !== undefined || !OPTIONS.BODY_LIMIT){
         diff.BODY_LIMIT = {
             old : OPTIONS.BODY_LIMIT,
-            new : String(opts.BODY_LIMIT)
+            new : String(opts.BODY_LIMIT || "16mb")
         }
         OPTIONS.BODY_LIMIT = diff.BODY_LIMIT.new
     }
-    if(opts.COLLECTION_NAME !== undefined){
+    if(opts.COLLECTION_NAME !== undefined || !OPTIONS.COLLECTION_NAME){
         diff.COLLECTION_NAME = {
             old : OPTIONS.COLLECTION_NAME,
-            new : String(opts.COLLECTION_NAME) || "_"
+            new : String(opts.COLLECTION_NAME || "_")
         }
         dbcollection = db.collection(diff.COLLECTION_NAME.new);
         OPTIONS.COLLECTION_NAME = diff.COLLECTION_NAME.new;
@@ -209,8 +207,14 @@ var removeAllPromise = function (key){
 var removeOnePromise = function (id){
     var d = q.defer();
     var callback = function(error, result){
-        if(error) d.reject(error);
-        else d.resolve(result);
+        if(error){
+            d.reject(error);
+            LOG("DELETE FAILURE:", error)
+        }
+        else{
+            d.resolve(result);
+            LOG("DELETE", id)
+        }
     }
     dbcollection.remove(
         { _id : new ObjectID(id) } ,
@@ -396,10 +400,20 @@ var placeOnChannel = function(key, message, type, binary){
 }
 
 var socketConnection = function(socket) {
+    LOG("SOCKET CONNECTED", socket.readyState);
+    socket.on("close", function(reason){
+        LOG("SOCKET CLOSED", socket._closeCode, socket._closeMessage);
+        removeFromAllChannels(socket);
+    })
     var path = url.parse(socket.upgradeReq.url, true, true);
     var key = path.pathname.substr(1);
+    if(key.indexOf(socketMountPoint) === 0){
+        key = key.substr(socketMountPoint.length)
+    }else if(socketMountPoint !== "/"){
+        key = ""
+    }
     if(!key){
-        socket.send("Please connect using /:key");
+        socket.send("Please connect using " + socketMountPoint + ":key");
         socket.close();
         return;
     }
@@ -425,10 +439,7 @@ var socketConnection = function(socket) {
                 LOG("PUT", result[0]);
             })
     }
-    socket.on("close", function(reason){
-        LOG("SOCKET CLOSED", socket._closeCode, socket._closeMessage);
-        removeFromAllChannels(socket);
-    })
+
     socket.on("message", function(message){
         message = message || "";
         if(socket.att.queue){
@@ -665,10 +676,8 @@ var getFunc = function(request, response){
     var deleteObject = function(result){
         if(result) return removeOnePromise(result._id)
             .then(function(deleted){
-                LOG("DELETE", result._id);
                 return q(result);
             }).fail(function(e){
-                LOG("DELETE FAILURE", e);
                 return q(result);
             })
         return q(result);
@@ -787,38 +796,70 @@ var patchFunc = function(request, response){
 
 }
 
-app.use(rawBody);
-router.delete("/:key*", getFunc);
-router.get("/:key*", getFunc);
-router.head("/:key*", getFunc);
-router.put("/:key*", putFunc);
-router.post("/:key*", putFunc);
-router.trace("/:key*", traceFunc);
-router.patch("/", patchFunc);
-if(OPTIONS.STATIC === "override")
-    app.use(express.static(__dirname + "/static"));
-app.use('/', router);
-if(OPTIONS.STATIC)
-    app.use(express.static(__dirname + "/static"));
 
-//Disconnect Mongo Client
-MongoClient.connect(
-    OPTIONS.DB_URL,
-    function(error, database){
-        if(error){
-            throw new Error(error);
+var initDB = function(options){
+    var d = q.defer();
+    MongoClient.connect(
+        options.DB_URL,
+        function(error, database){
+            if(error){
+                d.reject(new Error(error))
+                return;
+            }
+            LOG("Database Connected");
+            db = database;
+            d.resolve(options);
         }
-        db = database;
-        LOG("Database Connected:");
-        app.server = app.listen(OPTIONS.PORT);
-        LOG("Application Listening:", OPTIONS.PORT);
-        wss = new WS({server: app.server});
-        wss.on('connection', socketConnection);
-        LOG("Web Sockets Listening:", OPTIONS.PORT);
-        setOptions(OPTIONS, true);
+    )
+    return d.promise;
+}
+var initRoutes = function(options){
+    var d = q.defer();
+    app.use(rawBody);
+    router.delete("/:key*", getFunc);
+    router.get("/:key*", getFunc);
+    router.head("/:key*", getFunc);
+    router.put("/:key*", putFunc);
+    router.post("/:key*", putFunc);
+    router.trace("/:key*", traceFunc);
+    router.patch("/", patchFunc);
+    if(options.STATIC === "override")
+        app.use(express.static(__dirname + "/static"));
+    app.use('/', router);
+    if(options.STATIC)
+        app.use(express.static(__dirname + "/static"));
+    return q(options)
+}
+var mountSocket = function(server, mountPoint){
+    var wss = new WS({ server: server});
+    socketMountPoint =
+    (mountPoint || "")
+    .split("/")
+    .filter(function(item){return !!item})
+    .join("/") + "/";
+    wss.on('connection', socketConnection);
+}
+var app = express();
+var main = module.exports = function(options){
+    initDB(OPTIONS = options || OPTIONS)
+    .then(initRoutes)
+    .then(function(options){
+        if(require.main === module){
+            mountSocket(app.listen(options.PORT));
+            LOG("Application Listening: ", options.PORT);
+        }
+        setOptions(options, true);
         LOG("CONFIG:")
-        for(o in OPTIONS){
-            LOG(o, OPTIONS[o]);
+        for(o in options){
+            LOG(o, options[o]);
         }
-    }
-)
+    })
+    return app;
+};
+app.mountSocket = mountSocket;
+if(require.main === module){
+    main(OPTIONS)
+}else{
+
+
+}

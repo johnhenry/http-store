@@ -55,13 +55,13 @@ npm install -g http-store
 + Run with command line arguments
 
 ```
-http-store --db-url=mongodb://username:password@127.0.0.1:27017/http-store
+http-store --db-url=mongodb://username:password@127.0.0.1:27017/database
 ```
 
 + Or run with enviromnem variables
 
 ```
-export DB_URL=mongodb://username:password@127.0.0.1:27017/http-store && http-store
+export DB_URL=mongodb://username:password@127.0.0.1:27017/database && http-store
 ```
 
 ####Install via git and npm
@@ -110,3 +110,64 @@ By default, the server will run at 127.0.0.1:5000
 
 Options will be set via an optional _.env_ file located in the root directory.
 Command line parameters may be set by modifying the _Procfile_ file.
+
+###Node package
+
+Http store can also be mounted as a router in other node (express) applications.
+
+
+####Import store object
+
+Supply options to create http-store object object.
+Note: database options must be supplied when creating object. Other options are, well... optional.
+
+```js
+var options = {
+    //...db options required
+}
+var store = require('http-store')(options);
+```
+####Mount to express application server
+
+Mount at express point just like any other router
+
+```js
+< express app >.use(mountPoint, store);
+```
+
+####Mount store object to server
+Mount the sockets to the server by calling the < store instance >.mountSocket method. Note: can be attached to any http server, not just an express instance.
+
+```js
+var server = < http or express app server >;
+store.mountSocket(server, [mount point = "/"]);
+```
+
+####Full example
+
+```js
+var httpPort = 8080;
+var app = require('express')();
+var store = require('http-store')(
+    {
+        DB_URL : "mongodb://username:password@127.0.0.1:27017/database"
+    }
+);
+app.use("/mount/point", store);//Mount database
+store.mountSocket(
+    app.listen(httpPort),
+    "mount/point");//MountSocket
+```
+
+#####Connect
+
+```
+curl -x PUT <server location>/mount/point/:KEY Hello
+```
+
+```
+curl -x GET <server location>/mount/point/:KEY
+```
+```
+wscat -c <server location>/mount/point/:KEY
+```

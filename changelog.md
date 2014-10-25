@@ -3,6 +3,8 @@
 ##Changelog
 The change version _roughly_ conforms to semantic versioning.
 
+###0.4.1 - Added - can now be used as a package inside of express applications
+
 ###0.4.0
 + Modified - Reorganized Documentation
 + Modified - "DB_" replaces "MONGO" in options variable names
