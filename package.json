@@ -1,11 +1,14 @@
 {
   "name": "http-store",
-  "version": "0.4.1",
+  "version": "0.4.3",
   "description": "Generic DataStore Using HTTP Verbs",
   "main": "server.js",
+  "bin" : { "http-server" : "./server.js" },
   "scripts": {
+    "start": "./server.js -v",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js",
+    "local": "./server.js -v --static --unsafe-get --db-url mongodb://localhost/http-store",
+    "wscat" : "echo wscat -c http://$HOST/$KEY?queue=$QUEUE\\&binary=$BINARY\\&type=$TYPE\\&public=$PUBLIC\\&full=$FULL\\&peek=$PEEK\\&subscribe=$SUBSCRIBE\\&listen=$LISTEN && wscat -c http://$HOST/$KEY?queue=$QUEUE\\&binary=$BINARY\\&type=$TYPE\\&public=$PUBLIC\\&full=$FULL\\&peek=$PEEK\\&subscribe=$SUBSCRIBE\\&listen=$LISTEN",
     "push": "git push && git push heroku && npm publish"
   },
   "bin": {

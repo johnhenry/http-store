@@ -1,22 +1,83 @@
 #!/usr/bin/env node
-
 ////
 //Initial Command Line Stuff
 ////
-var argv = require('yargs')
-    .alias("v","verbose")
-    .alias("p","port")
-    .boolean("verbose")
-    .default("verbose", false)
-    .default("static")
-    .boolean("unsafe-get")
-    .boolean("peek")
-    .default("peek", true)
-    .boolean("capture-headers")
-    .boolean("http-queue")
-    .boolean("allow-set-headers")
-    .alias("e","env")
-    .argv
+
+var yargs = require('yargs')
+    .usage("\nUsage: $0 [options]")
+    .describe("help", "Show this help screen.")
+        .alias("help", "h")
+    .describe("verbose", "Print verbose output to the command line.")
+        .alias("verbose","v")
+        .boolean("verbose")
+        .default("verbose", false)
+    .describe("env", "Use file to set environment variables")
+        .alias("env","e")
+    .describe("port","Listening port for HTTP requests.")
+        .string("port")
+        .alias("port","p")
+        .default("port", "8080")
+    .describe("charset","Default encoding for stored objects.")
+        .string("charset")
+        .default("charset", "utf-8")
+    .describe("body-limit","Limit of body to read.")
+        .string("body-limit")
+        .default("body-limit", "16mb")
+    .describe("base-type","Default type assigned to stored objects.")
+        .string("base-type")
+        .default("base-type", "text/plain")
+    .describe("static", "Serve static files.")
+        .default("static", false)
+    .describe("unsafe-get", "Enables removal of items through GET get method.")
+        .boolean("unsafe-get")
+        .default("unsafe-get", false)
+    .describe("peek", "View items w/o removal")
+        .boolean("peek")
+        .default("peek", true)
+    .describe("capture-headers", "Store headers along with body.")
+        .boolean("capture-headers")
+        .default("capture-headers", false)
+    .describe("http-queue", "Retreve as queue by default.")
+        .boolean("http-queue")
+        .default("http-queue", false)
+    .describe("allow-set-date","Allow date to be set via request headers." )
+        .default("allow-set-date", false)
+    .boolean("allow-set-date")
+    .describe("db-protocol","Protocol for connecting to database host.")
+        .string("db-protocol")
+        .default("db-protocol", "mongodb")
+    .describe("db-host","MongoDB database host.")
+        .string("db-host")
+        .default("db-host", "127.0.0.1")
+    .describe("db-user","MongoDB database user name.")
+        .string("db-user")
+    .describe("db-pass","MongoDB database password.")
+        .string("db-pass")
+    .describe("db-port","MongoDB connection port.")
+        .string("db-port")
+        .default("db-port", "27017")
+    .describe("db-name","MongoDB database name.")
+        .string("db-name")
+        .default("db-name", "http-store")
+    .describe("db-url","MongoDB database full. Overwrites all other DB attributes.")
+        .string("db-url")
+    .describe("collection-name","MongoDB database collection name to use.")
+        .string("collection-name")
+        .default("collection-name", "_")
+
+
+
+
+
+var argv = yargs.argv;
+if(argv.help){
+    console.log(yargs.help())
+    process.exit();
+}
+if(argv.help){
+    console.log(yargs.help())
+    process.exit();
+}
 var LOG = argv.verbose ? console.log : function(){};
 ////
 //Imports
@@ -105,11 +166,13 @@ var OPTIONS = {
         || (argv["db-protocol"]
             || process.env.DB_PROTOCOL
             || "mongodb") + "://"
-        + (argv["db-user"] || process.env.DB_USER || "") + ":"
-        + (argv["db-pass"] || process.env.DB_PASS || "") + "@"
+        + (argv["db-user"] || process.env.DB_USER || "")
+        + ((argv["db-pass"] || process.env.DB_PASS) ?
+            (":" + (argv["db-pass"] || process.env.DB_PASS)) : "")
+        + ((argv["db-user"] || process.env.DB_USER) ? "@" : "")
         + (argv["db-host"] || process.env.DB_HOST || "127.0.0.1") +":"
         + (argv["db-port"] || process.env.DB_PORT || 27017) + "/"
-        + (argv["db-name"] || process.env.DB_NAME || "")
+        + (argv["db-name"] || process.env.DB_NAME || "http-store")
 }
 ////
 //Application
@@ -846,16 +909,27 @@ var main = module.exports = function(options){
     .then(function(options){
         if(require.main === module){
             mountSocket(app.listen(options.PORT));
-            LOG("Application Listening: ", options.PORT);
+            LOG("__________________");
+            LOG("HTTP Store Started");
+            LOG("__________________");
         }
         setOptions(options, true);
-        LOG("CONFIG:")
         for(o in options){
             LOG(o, options[o]);
         }
+        LOG("__________________");
+    }).fail(function(error){
+        LOG("Error Logging In: " + error)
+        throw(new Error(error));
     })
     return app;
 };
+var exitHandler = function(options, error){
+    LOG("\n__________________");
+    LOG("HTTP Store Stopped");
+    process.exit();
+}
+process.on("SIGINT", exitHandler);
 app.mountSocket = mountSocket;
 if(require.main === module){
     main(OPTIONS)

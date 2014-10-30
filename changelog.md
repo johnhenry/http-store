@@ -1,9 +1,21 @@
 #HTTP Store
 
 ##Changelog
-The change version _roughly_ conforms to semantic versioning.
+The change version _does not_ conform to semantic versioning.
 
-###0.4.1 - Added - can now be used as a package inside of express applications
+0.5.0
+
+
+###0.4.3
++ Added - CLI Help
++ Modified - Username, Username/Password no longer required
++ Added - "local" and "wscat" test scripts
+
+###0.4.2
++ Added Dockerfile
+
+###0.4.1
++ Added - can now be used as a package inside of express applications
 
 ###0.4.0
 + Modified - Reorganized Documentation

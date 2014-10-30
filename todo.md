@@ -1,5 +1,7 @@
 #Todo
-- Selectively Enable HTTP and WEBSOCKETS
-- Create Tests
-- Add Dockerfile
-- Integrate waterline adapter
+- Modified - Moved Documentation To Another Repository*
+- Modified - PATCH now uses JSON PATCH Format (http://jsonpatch.com/)
+
+- Modified - Selectively Enable HTTP and WEBSOCKETS
+- Added - Unit Tests Tests
+- Added - Integrate waterline adapter

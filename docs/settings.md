@@ -14,6 +14,13 @@ Set these options from the commandline
         <th>Set Via PATCH?</th>
     </tr>
     <tr>
+        <td>-h, --help</td>
+        <td>_(N/A)_</td>
+        <td>Show Help Screen.</td>
+        <td>false</td>
+        <td>no</td>
+    </tr>
+    <tr>
         <td>-v, --verbose</td>
         <td>_(N/A)_</td>
         <td>Print verbose output to the command line.</td>
@@ -134,7 +141,7 @@ Set these options from the commandline
         <td>--db-port </td>
         <td>DB_PORT</td>
         <td>MongoDB connection port.</td>
-        <td></td>
+        <td>27017</td>
         <td>no</td>
     </tr>
     <tr>
@@ -148,6 +155,13 @@ Set these options from the commandline
         <td>--db-url</td>
         <td>DB_URL</td>
         <td>MongoDB database full. Overwrites all other DB attributes</td>
+        <td></td>
+        <td>no</td>
+    </tr>
+    <tr>
+        <td>--collection-name</td>
+        <td>COLLECTION_NAME</td>
+        <td>MongoDB database collection name to use.</td>
         <td></td>
         <td>no</td>
     </tr>
