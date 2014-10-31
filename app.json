@@ -48,7 +48,7 @@
     },
     "CAPTURE_HEADERS":{
         "description": "Store request headers in database alonside value.",
-        "value" : "true",
+        "value" : "false",
         "required" : false
     },
     "HTTP_QUEUE":{
@@ -91,7 +91,7 @@
         "value" : "27017",
         "required" : false
     },
-    "DB_FULL": {
+    "DB_URL": {
         "description": "MongoDB database full URL. Overwrites all other DB related fields if set.",
         "value" : "",
         "required" : false
