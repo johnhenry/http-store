@@ -9,11 +9,11 @@ Inserting and Enqueueing are accomplished with the PUT and POST methods.
 
 By default, PUT will insert the body of an http request into the database. It will overwrite all other items with the same key..
 
-    PUT /__:key__ -> [Insert item]
+    PUT /:key -> [Insert item]
 
 Attaching the attribute 'enqueue=false' to the url using a POST request will accomplish the same.
 
-    POST /__:key__?enqueue=false -> [Insert item]
+    POST /:key?enqueue=false -> [Insert item]
 
 ####Enqueueing
 

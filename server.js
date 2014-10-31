@@ -5,11 +5,14 @@
 
 var yargs = require('yargs')
     .usage("\nUsage: $0 [options]\n\n\
-    Options (excluding help, verbose, env) can also be set via environment.\n\
+    Options (excluding help, version, verbose, env) can also be set via environment.\n\
     Many options can be set at runtime via PATCH method.\n\
     See documentation for more details.")
     .describe("help", "Show [this] help screen.")
         .alias("help", "h")
+    .describe("version", "Display version")
+        .boolean("version")
+        .default("version", false)
     .describe("verbose", "Print verbose output to the command line.")
         .alias("verbose","v")
         .boolean("verbose")
@@ -106,11 +109,6 @@ if(argv.help){
     console.log(yargs.help())
     process.exit();
 }
-var LOG = function(){};
-if(argv.verbose){
-    var LOG = console.log;
-}
-
 ////
 //Imports
 ////
@@ -122,6 +120,17 @@ var q = require('q');
 var express = require('express');
 var rawbody = require('raw-body');
 var jsonpatch = require('jsonpatch');
+
+if(argv.version){
+    console.log(JSON.parse(fs.readFileSync("./package.json")).version)
+    process.exit();
+}
+var LOG = function(){};
+if(argv.verbose){
+    var LOG = console.log;
+}
+
+
 var isInt = function(value) {
   return !isNaN(value) &&
          parseInt(Number(value)) == value &&
@@ -1066,6 +1075,8 @@ var main = module.exports = function(options){
         for(o in OPTIONS){
             LOG(o, OPTIONS[o]);
         }
+        LOG("__________________");
+        LOG("(Control-C to quit)");
     }).fail(function(error){
         LOG("Error Logging In: " + error)
         throw(new Error(error));
