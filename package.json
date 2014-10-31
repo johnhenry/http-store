@@ -3,16 +3,15 @@
   "version": "0.4.3",
   "description": "Generic DataStore Using HTTP Verbs",
   "main": "server.js",
-  "bin" : { "http-server" : "./server.js" },
+  "bin": {
+    "http-store": "server.js"
+  },
   "scripts": {
     "start": "./server.js -v",
     "test": "echo \"Error: no test specified\" && exit 1",
     "local": "./server.js -v --static --unsafe-get --db-url mongodb://localhost/http-store",
-    "wscat" : "echo wscat -c http://$HOST/$KEY?queue=$QUEUE\\&binary=$BINARY\\&type=$TYPE\\&public=$PUBLIC\\&full=$FULL\\&peek=$PEEK\\&subscribe=$SUBSCRIBE\\&listen=$LISTEN && wscat -c http://$HOST/$KEY?queue=$QUEUE\\&binary=$BINARY\\&type=$TYPE\\&public=$PUBLIC\\&full=$FULL\\&peek=$PEEK\\&subscribe=$SUBSCRIBE\\&listen=$LISTEN",
+    "wscat": "echo wscat -c http://$HOST/$KEY?queue=$QUEUE\\&binary=$BINARY\\&type=$TYPE\\&public=$PUBLIC\\&full=$FULL\\&peek=$PEEK\\&subscribe=$SUBSCRIBE\\&listen=$LISTEN && wscat -c http://$HOST/$KEY?queue=$QUEUE\\&binary=$BINARY\\&type=$TYPE\\&public=$PUBLIC\\&full=$FULL\\&peek=$PEEK\\&subscribe=$SUBSCRIBE\\&listen=$LISTEN",
     "push": "git push && git push heroku && npm publish"
-  },
-  "bin": {
-    "http-store": "server.js"
   },
   "repository": "https://github.com/johnhenry/http-store",
   "keywords": [
@@ -23,6 +22,7 @@
   "author": "John Henry",
   "license": "MIT",
   "dependencies": {
+    "cli-spinner": "^0.1.5",
     "express": "^4.9.7",
     "mongodb": "^1.4.19",
     "node-env-file": "^0.1.4",

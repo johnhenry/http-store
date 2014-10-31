@@ -40,7 +40,7 @@
                     </select>
             </label>
             <p>
-                <label>
+                <label id="key-box">
                     Key : <input id="key">
                 </label>
             </p>
@@ -116,7 +116,7 @@
             var xmlhttp = new XMLHttpRequest();
             var responseURL = "";
             xmlhttp.onreadystatechange=function(){
-            if (xmlhttp.readyState==4)
+            if (xmlhttp.readyState === 4)
                 {
                     document.getElementById("response-url")
                     .innerHTML = responseURL;
@@ -156,7 +156,7 @@
                 var queryHash = {
                     enqueue : document
                                 .getElementById("enqueue")
-                    .checked? "true" : "false",
+                    .checked? "true" : (method === "PUT" || method ==="POST") ? "false" : "",
                     dequeue : document
                                 .getElementById("dequeue")
                     .checked? "true" : "",
@@ -183,15 +183,26 @@
             }
             var changeMethod = function(){
                 var method = document.getElementById("method").value;
+                if(method === "PATCH"){
+                    document.getElementById("key")
+                        .value = "";
+                    document
+                        .getElementById("key-box")
+                        .style.display = "none";
+                }else{
+                    document
+                        .getElementById("key-box")
+                        .style.display = "block";
+                }
                 switch(method){
                     case "PUT" :
                     case "POST" :
                         document
                             .getElementById("dequeue")
-                            .checked = false
+                            .checked = undefined;
                         document
                             .getElementById("pop")
-                            .checked = false;
+                            .checked = undefined;
                         document
                             .getElementById("index")
                             .checked = "";
@@ -211,13 +222,13 @@
                     case "PATCH" :
                         document
                             .getElementById("dequeue")
-                            .checked = false;
+                            .checked = undefined;
                         document
                             .getElementById("enqueue")
-                            .checked = false;
+                            .checked = undefined;
                         document
                             .getElementById("pop")
-                            .checked = false;
+                            .checked = undefined;
                         document
                             .getElementById("index")
                             .checked = "";
@@ -239,7 +250,7 @@
                     default :
                         document
                             .getElementById("enqueue")
-                            .checked = false;
+                            .checked = undefined;
                         document
                             .getElementById("body-box")
                             .style.display = "none";

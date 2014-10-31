@@ -3,10 +3,8 @@
 ##Changelog
 The change version _does not_ conform to semantic versioning.
 
-0.5.0
-
-
 ###0.4.3
++ Added - Selectively Enable HTTP and WEBSOCKETS
 + Added - CLI Help
 + Modified - Username, Username/Password no longer required
 + Added - "local" and "wscat" test scripts
