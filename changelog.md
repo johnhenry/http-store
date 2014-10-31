@@ -3,6 +3,9 @@
 ##Changelog
 The change version _does not_ conform to semantic versioning.
 
+###0.5.1
++ Fixed - Fixed issue where defaults override passed arguments
+
 ###0.5.0
 + Modified - PATCH now uses JSON PATCH Format
 + Fixed - PATCH broken in previous update
