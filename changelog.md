@@ -3,6 +3,10 @@
 ##Changelog
 The change version _does not_ conform to semantic versioning.
 
+###0.5.0
++ Modified - PATCH now uses JSON PATCH Format
++ Fixed - PATCH broken in previous update
+
 ###0.4.3
 + Added - Selectively Enable HTTP and WEBSOCKETS
 + Added - CLI Help

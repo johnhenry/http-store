@@ -8,7 +8,7 @@ var yargs = require('yargs')
     Options (excluding help, verbose, env) can also be set via environment.\n\
     Many options can be set at runtime via PATCH method.\n\
     See documentation for more details.")
-    .describe("help", "Show this help screen.")
+    .describe("help", "Show [this] help screen.")
         .alias("help", "h")
     .describe("verbose", "Print verbose output to the command line.")
         .alias("verbose","v")
@@ -31,19 +31,24 @@ var yargs = require('yargs')
         .default("base-type", "text/plain")
     .describe("static", "Serve static files.")
         .default("static", false)
+        .alias("static","s")
     .describe("unsafe-get", "Enables removal of items through GET get method.")
         .boolean("unsafe-get")
+        .alias("unsafe-get","u")
         .default("unsafe-get", false)
     .describe("peek", "View items w/o removal")
         .boolean("peek")
         .default("peek", true)
     .describe("capture-headers", "Store headers along with body.")
         .boolean("capture-headers")
+        .alias("capture-headers","c")
         .default("capture-headers", false)
     .describe("http-queue", "Retreve as queue by default.")
         .boolean("http-queue")
+        .alias("http-queue","q")
         .default("http-queue", false)
     .describe("allow-set-date","Allow date to be set via request headers." )
+        .alias("allow-set-date","d")
         .default("allow-set-date", false)
     .boolean("allow-set-date")
     .describe("db-protocol","Protocol for connecting to database host.")
@@ -69,6 +74,7 @@ var yargs = require('yargs')
         .default("collection-name", "_")
     .describe("method-all-http","Enable HTTP methods.Takes priority over other method attributes.")
         .boolean("method-all-http")
+        .alias("method-all-http", "H")
         .default("method-all-http", true)
     .describe("method-get","Enable GET method.")
         .boolean("method-get")
@@ -93,6 +99,7 @@ var yargs = require('yargs')
         .default("method-head", true)
     .describe("websockets","Enable websockets.")
         .boolean("websockets")
+        .alias("websockets","w")
         .default("websockets", true)
 var argv = yargs.argv;
 if(argv.help){
@@ -100,12 +107,9 @@ if(argv.help){
     process.exit();
 }
 var LOG = function(){};
-
 if(argv.verbose){
     var LOG = console.log;
-
 }
-
 
 ////
 //Imports
@@ -117,6 +121,7 @@ var mongodb = require('mongodb');
 var q = require('q');
 var express = require('express');
 var rawbody = require('raw-body');
+var jsonpatch = require('jsonpatch');
 var isInt = function(value) {
   return !isNaN(value) &&
          parseInt(Number(value)) == value &&
@@ -965,7 +970,19 @@ var traceFunc = function(request, response){
     };
     render(response, obj, 200);
 }
-
+var patchable = [
+"CHARSET",
+"BODY_LIMIT",
+"BASE_TYPE",
+"STATIC",
+"PEEK",
+"UNSAFE_GET",
+"CAPTURE_HEADERS",
+"HTTP_QUEUE",
+"ALLOW_SET_DATE",
+"COLLECTION_NAME",
+"WEBSOCKETS"
+].map(function(item){return "/"+item;});
 
 var patchFunc = function(request, response){
     var obj = {
@@ -974,11 +991,10 @@ var patchFunc = function(request, response){
         type : "application/json"
     }
     try{
-        var filter = JSON.parse(obj.value);
-        //process filter
-
-
-        var opts = diff(filter, OPTIONS)
+        var filter = JSON.parse(obj.value).filter(function(item){
+            return patchable.indexOf(item.path) !== -1 && item.op === "replace";
+        })
+        var opts = jsonpatch.apply_patch(OPTIONS, filter)
         setOptions(opts)
             .then(function(options){
                 obj.value = options;
@@ -1044,13 +1060,6 @@ var main = module.exports = function(options){
     .then(function(options){
         if(require.main === module){
             mountSocket(app.listen(options.PORT));
-            //if(OPTIONS.WEBSOCKETS) mountSocket(app.listen(options.PORT));
-            /*
-            var Spinner = require('cli-spinner').Spinner;
-            var spinner = new Spinner('http store running...');
-            spinner.setSpinnerString('|/-\\');
-            spinner.start();
-            */
             LOG("http store started");
             LOG("__________________");
         }

@@ -14,28 +14,28 @@ Set these options from the command line
         <th>Set Via PATCH?</th>
     </tr>
     <tr>
-        <td>-h, --help</td>
+        <td>--help, -h</td>
         <td>_(N/A)_</td>
         <td>Show Help Screen.</td>
         <td>false</td>
         <td>no</td>
     </tr>
     <tr>
-        <td>-v, --verbose</td>
+        <td>--verbose, -v</td>
         <td>_(N/A)_</td>
         <td>Print verbose output to the command line.</td>
         <td>false</td>
         <td>no</td>
     </tr>
     <tr>
-        <td>-e, --env</td>
+        <td>--env, -e</td>
         <td>_(N/A)_</td>
         <td>Use file to set environment variables</td>
         <td></td>
         <td>no</td>
     </tr>
     <tr>
-        <td>-p, --port</td>
+        <td>--port, -p</td>
         <td>PORT</td>
         <td>Listening port for HTTP requests.</td>
         <td>"8080"</td>
@@ -63,7 +63,7 @@ Set these options from the command line
         <td>yes</td>
     </tr>
     <tr>
-        <td>--static </td>
+        <td>--static, -s</td>
         <td>STATIC</td>
         <td>Serve files in static folder at "<server address>/"<br />
             false - do not host static files<br />
@@ -78,36 +78,36 @@ Set these options from the command line
         <td>--(no-)peek </td>
         <td>PEEK</td>
         <td>If set as false, all retrieval  request to data base also remove item.</td>
-        <td>false</td>
-        <td>no</td>
+        <td>true</td>
+        <td>yes</td>
     </tr>
     <tr>
-        <td>--(no-)unsafe-get </td>
+        <td>--(no-)unsafe-get, -u </td>
         <td>UNSAFE_GET</td>
         <td>Enables removal of items through GET get method by appending "?dequeue=true" to url if set.</td>
         <td>false</td>
         <td>yes</td>
     </tr>
     <tr>
-        <td>--(no-)capture-headers</td>
+        <td>--(no-)capture-headers, -c</td>
         <td>CAPTURE_HEADERS</td>
         <td>Capture and store all headers along with body.</td>
         <td>false</td>
         <td>yes</td>
     </tr>
     <tr>
-        <td>--(no-)http-queue </td>
+        <td>--(no-)http-queue, -q </td>
         <td>HTTP_QUEUE</td>
         <td>Enables dequeueing by default via GET/DELETE</td>
         <td>false</td>
         <td>yes</td>
     </tr>
     <tr>
-        <td>--(no-)allow-set-date</td>
+        <td>--(no-)allow-set-date, -d</td>
         <td>ALLOW_SET_DATE</td>
         <td>Allow date to be set via request headers</td>
         <td>false</td>
-        <td>no</td>
+        <td>yes</td>
     </tr>
     <tr>
         <td>--db-protocol</td>
@@ -162,7 +162,7 @@ Set these options from the command line
         <td>--collection-name</td>
         <td>COLLECTION_NAME</td>
         <td>MongoDB database collection name to use.</td>
-        <td>"_ _ "</td>
+        <td>"_"</td>
         <td>yes</td>
     </tr>
     <tr>

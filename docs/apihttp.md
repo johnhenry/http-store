@@ -89,18 +89,26 @@ If more than one item is stored at that key, GET will retrieve the _least_ recen
 
 ##Settings
 
-Some settings can be changed via the PATCH method. Settings can be change. When using the patch method, be sure to set the content-type of the request to application/json. You must sent a JSON object with each key set to the setting you wish to change and each value set to the desired value. The response type will also be application/json.
+Some settings can be changed via the PATCH method. When using the PATCH method, your request will be treated as JSON according to the [JSON-patch specification](http://tools.ietf.org/html/rfc6902). Only the replace operation is supported. The response will be of type application/json and consist of a list of editable settings.
 
-    PATCH / {SETTING_1:"new setting1", SETTING_2:"new setting2",...} -> [Setting Changes]
+    PATCH / [
+    { "op": "replace", "path": "/SETTING_1", "value": "new value 1" },
+    { "op": "replace", "path": "/SETTING_1", "value": "new value 2" },
+    ...] -> [settings changes]
 
-    See [Settings Section]() for more details.
+See [Settings Section](https://github.com/johnhenry/http-store/blob/master/docs/settings.md) for more details.
 
 ##Echoing
 
-    The trace PUT method, but simply echos back the request rather than processing it.
+The TRACE method is similar to the GET method, but simply _echos_ back the request rather than processing it.
 
     TRACE /:key -> [Request]
 
+##Metadata
+
+The HEAD method is similar to the GET method, but simply returns the headers rather than the full body of the response.
+
+    TRACE /:key -> [Request]
 
 ##Advanced
 

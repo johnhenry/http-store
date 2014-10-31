@@ -54,6 +54,8 @@
                             text/html</option>
                         <option value="application/json">
                             application/json</option>
+                        <option value="application/json-patch+json">
+                            application/json-patch+json</option>
                     </select>
                 </label>
                 <label>
@@ -245,7 +247,7 @@
                             .getElementById("dequeue-box")
                             .style.display = "none";
                         document
-                            .getElementById("type").value = "application/json"
+                            .getElementById("type").value = "application/json-patch+json"
                     break;
                     default :
                         document
