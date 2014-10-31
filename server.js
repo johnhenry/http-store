@@ -106,7 +106,7 @@ var rawbody = require('raw-body');
 var jsonpatch = require('jsonpatch');
 
 if(argv.version){
-    console.log(JSON.parse(fs.readFileSync("./package.json")).version)
+    console.log("0.5.2");
     process.exit();
 }
 var LOG = function(){};

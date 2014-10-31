@@ -3,6 +3,9 @@
 ##Changelog
 The change version _does not_ conform to semantic versioning.
 
+###0.5.2
++ Fixed - Repot built in versioning number as opposed to reading from package.json.
+
 ###0.5.1
 + Fixed - Fixed issue where defaults override passed arguments
 
