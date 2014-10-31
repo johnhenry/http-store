@@ -23,6 +23,7 @@
   "license": "MIT",
   "dependencies": {
     "express": "^4.9.7",
+    "its-thinking": "^0.0.4",
     "jsonpatch": "^1.0.0-rc1",
     "mongodb": "^1.4.19",
     "node-env-file": "^0.1.4",

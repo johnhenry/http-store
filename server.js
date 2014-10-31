@@ -1051,8 +1051,11 @@ var main = module.exports = function(options){
     })
     .then(initRoutes)
     .then(function(options){
+        var ItsThinking = require("its-thinking");
+        var spinner = new ItsThinking(1)
         if(require.main === module){
             mountSocket(app.listen(options.PORT));
+            spinner.start("http store running... ")
             LOG("http store started");
             LOG("__________________");
         }
