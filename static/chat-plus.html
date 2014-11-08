@@ -2,14 +2,6 @@
 <html>
     <head>
         <script src='//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js'></script>
-
-        <!-- Web Component Polyfill for old browsers -->
-        <script src="//www.polymer-project.org/platform.js"></script>
-        <!-- Release candidate of next React -->
-        <script src="//fb.me/react-with-addons-0.12.0-rc1.js"></script>
-        <script src="//fb.me/JSXTransformer-0.12.0-rc1.js"></script>
-        <!-- Import a web component -->
-        <link rel="import" href="//www.polymer-project.org/components/core-icons/core-icons.html">
     </head>
     <body>
         <h1>Chat Plus</h1>
@@ -25,11 +17,6 @@
         <span id='name'>:)</span>
         <input type='text' id='messageInput' placeholder='Message'>
         <br />
-        <div id="react-root"></div>
-        <script type="text/jsx">
-          var coreIcon = React.createElement('core-icon', {src: '//www.polymer-project.org/images/icons/android.svg'});
-          React.render(coreIcon, document.getElementById('react-root'))
-        </script>
         <script>
         var name = String(Math.random()).substr(2);
         $('#name').html(name);
