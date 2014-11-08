@@ -1,13 +1,13 @@
 <!doctype html>
 <html>
     <head>
-    <script src='https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js'></script>
+    <script src='//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js'></script>
     </head>
     <body>
         <h1>Chat</h1>
         <h2>Real-time Chat Application</h2>
         <p>
-            This chat application uses web sockets to create a real-time chatroom. Compare the source to this <a href="https://www.firebase.com/tutorial/" target="_blank">
+            This chat application uses web sockets to create a real-time chatroom. Compare the source to this <a href="//www.firebase.com/tutorial/" target="_blank">
               Firebase tutorial</a>.
         </p>
         <hr />
@@ -17,7 +17,7 @@
         <br />
         <script>
         var host =
-        "ws://" +
+        (location.protocol = "http:" ? "ws://" : "wss://" ) +
         location.hostname
         + ((location.port !== 80 && location.port) ? ":" + location.port : "")
         + "/chatroom"//key

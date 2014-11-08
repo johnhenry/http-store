@@ -3,7 +3,7 @@
 ##Changelog
 The change version _does not_ conform to semantic versioning.
 
-###0.5.4
+###0.5.5
 + Moved Documentation To Wiki
 + Added - Chat Demo
 + Added - Preliminary Unit Tests

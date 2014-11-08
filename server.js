@@ -98,7 +98,7 @@ var rawbody = require('raw-body');
 var jsonpatch = require('jsonpatch');
 
 if(argv.version){
-    console.log("0.5.4");
+    console.log("0.5.5");
     process.exit();
 }
 var LOG = function(){};

@@ -1,6 +1,6 @@
 {
   "name": "http-store",
-  "version": "0.5.4",
+  "version": "0.5.5",
   "description": "Generic DataStore Using HTTP Verbs",
   "main": "server.js",
   "bin": {
