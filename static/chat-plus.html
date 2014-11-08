@@ -35,7 +35,7 @@
         $('#name').html(name);
         var chatroom = "chatroom";
         var host =
-        "ws://" +
+        (location.protocol === "http:" ? "ws://" : "wss://" ) +
         location.hostname
         + ((location.port !== 80 && location.port) ? ":" + location.port : "")
         + "/" + chatroom//key

@@ -3,7 +3,10 @@
 ##Changelog
 The change version _does not_ conform to semantic versioning.
 
-###0.5.5
+###0.5.6
++ Fix - Secure Sockets in Chat Demo
+
+###0.5.4
 + Moved Documentation To Wiki
 + Added - Chat Demo
 + Added - Preliminary Unit Tests
