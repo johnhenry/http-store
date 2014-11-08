@@ -3,6 +3,14 @@
 ##Changelog
 The change version _does not_ conform to semantic versioning.
 
+###0.5.4
++ Moved Documentation To Wiki
++ Added - Chat Demo
++ Added - Preliminary Unit Tests
++ Modified - Removed Ability to alter Routes/Websockets at run time
++ Modified - "_" is now used as default key when not specified
++ Fixed - Repot built in versioning number as opposed to reading from package.json.
+
 ###0.5.2
 + Fixed - Repot built in versioning number as opposed to reading from package.json.
 

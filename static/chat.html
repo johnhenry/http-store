@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+    <head>
+    <script src='https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js'></script>
+    </head>
+    <body>
+        <h1>Chat</h1>
+        <h2>Real-time Chat Application</h2>
+        <p>
+            This chat application uses web sockets to create a real-time chatroom. Compare the source to this <a href="https://www.firebase.com/tutorial/" target="_blank">
+              Firebase tutorial</a>.
+        </p>
+        <hr />
+        <div id='messagesDiv'></div>
+        <input type='text' id='nameInput' placeholder='Name'>
+        <input type='text' id='messageInput' placeholder='Message'>
+        <br />
+        <script>
+        var host =
+        "ws://" +
+        location.hostname
+        + ((location.port !== 80 && location.port) ? ":" + location.port : "")
+        + "/chatroom"//key
+        + "?listen=true&peek=true";//attributes
+        var myDataRef = new WebSocket(host);
+        $('#messageInput').keypress(function (e) {
+            if (e.keyCode == 13) {//Enter Key
+                var name = $('#nameInput').val();
+                var text = $('#messageInput').val();
+                myDataRef.send("enqueue " + JSON.stringify({name: name, text: text}));
+                $('#messageInput').val('');
+            }
+        });
+        myDataRef.onmessage = function(message){
+            if(message.data){//New Data Incoming
+                message = JSON.parse(message.data);
+                displayChatMessage(message.name, message.text);
+            }else{//New Data Available
+                myDataRef.send("pop");
+            }
+        }
+        var displayChatMessage = function(name, text) {
+            $('<div/>').text(text).prepend($('<em/>').text(name+': ')).appendTo($('#messagesDiv'));
+            $('#messagesDiv')[0].scrollTop = $('#messagesDiv')[0].scrollHeight;
+        };
+        </script>
+    </body>
+</html>

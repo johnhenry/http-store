@@ -9,12 +9,12 @@ HTTP Key-Value Store on top of MongoDB
 - Send data between http and websocket clients
 
 ##Other Docs:
-+ [HTTP API](https://github.com/johnhenry/http-store/blob/master/docs/apihttp.md)
-+ [Websocket API](https://github.com/johnhenry/http-store/blob/master/docs/apiws.md)
-+ [Server Settings](https://github.com/johnhenry/http-store/blob/master/docs/settings.md)
-+ [Tested Applications](https://github.com/johnhenry/http-store/blob/master/docs/applications.md)
-+ [Glossary](https://github.com/johnhenry/http-store/blob/master/docs/glossary.md)
-+ [Architecture](https://github.com/johnhenry/http-store/blob/master/docs/architecture.md)
++ [HTTP API](https://github.com/johnhenry/http-store/wiki/API---HTTP)
++ [Web Socket API](https://github.com/johnhenry/http-store/wiki/API---Web-Sockets)
++ [Server Settings](Settings)
++ [Tested Applications](https://github.com/johnhenry/http-store/wiki/Applications)
++ [Glossary](https://github.com/johnhenry/http-store/wiki/Glossary)
++ [Architecture](https://github.com/johnhenry/http-store/wiki/Architecture)
 
 ##Prerequesites
 Befor you deploy anywhere, you must have a mongodb server instance running somewhere.

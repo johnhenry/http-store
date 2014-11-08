@@ -62,37 +62,29 @@ var yargs = require('yargs')
     .describe("method-all-http","Enable HTTP methods.Takes priority over other method attributes.")
         .boolean("method-all-http")
         .alias("method-all-http", "H")
-        .default("method-all-http", true)
     .describe("method-get","Enable GET method.")
         .boolean("method-get")
-        .default("method-get", true)
     .describe("method-put","Enable PUT method.")
         .boolean("method-put")
-        .default("method-put", true)
     .describe("method-post","Enable POST method.")
         .boolean("method-post")
-        .default("method-post", true)
     .describe("method-delete","Enable DELETE method.")
         .boolean("method-delete")
-        .default("method-delete", true)
     .describe("method-patch","Enable PATCH method.")
         .boolean("method-patch")
-        .default("method-patch", true)
     .describe("method-trace","Enable TRACE method.")
         .boolean("method-trace")
-        .default("method-trace", true)
     .describe("method-head","Enable HEAD method.")
         .boolean("method-head")
-        .default("method-head", true)
     .describe("websockets","Enable websockets.")
         .boolean("websockets")
         .alias("websockets","w")
-        .default("websockets", true)
 var argv = yargs.argv;
 if(argv.help){
     console.log(yargs.help())
     process.exit();
 }
+
 ////
 //Imports
 ////
@@ -106,7 +98,7 @@ var rawbody = require('raw-body');
 var jsonpatch = require('jsonpatch');
 
 if(argv.version){
-    console.log("0.5.2");
+    console.log("0.5.4");
     process.exit();
 }
 var LOG = function(){};
@@ -164,7 +156,7 @@ var channels = {
 //Set options based on environmental variables
 var OPTIONS = {
     PORT : argv.port || process.env.PORT || 8080,
-    BASE_TYPE : argv["base-type"] || process.env.BASE_TYPE || "text/plain",
+    BASE_TYPE : argv["base-type"] || process.env.BASE_TYPE || "application/octet-stream",
     CHARSET : argv["charset"] || process.env.CHARSET || "utf-8",
     BODY_LIMIT : argv["body-limit"] || process.env.BODY_LIMIT || "16mb",
     COLLECTION_NAME : argv["collection-name"] || process.env.COLLECTION_NAME || "_",
@@ -185,36 +177,35 @@ var OPTIONS = {
     ALLOW_SET_DATE : isSetTrue(argv["allow-set-date"])
         || isSetTrue(process.env.ALLOW_SET_DATE)
         || false,
-    PEEK : isSetFalse(argv["peek"]) ? false
-        : isSetFalse(process.env.PEEK) ? false
-        : true,
-    METHOD_ALL_HTTP : isSetFalse(argv["method-all-http"]) ? false
-        : isSetFalse(process.env.METHOD_ALL_HTTP) ? false
-        : true,
-    METHOD_GET : isSetFalse(argv["method-get"]) ? false
-        : isSetFalse(process.env.METHOD_GET) ? false
-        : true,
-    METHOD_PUT : isSetFalse(argv["method-put"]) ? false
-        : isSetFalse(process.env.METHOD_PUT) ? false
-        : true,
-    METHOD_POST : isSetFalse(argv["method-post"]) ? false
-        : isSetFalse(process.env.METHOD_POST) ? false
-        : true,
-    METHOD_DELETE : isSetFalse(argv["method-delete"]) ? false
-        : isSetFalse(process.env.METHOD_DELETE) ? false
-        : true,
-    METHOD_PATCH : isSetFalse(argv["method-patch"]) ? false
-        : isSetFalse(process.env.METHOD_PATCH) ? false
-        : true,
-    METHOD_TRACE : isSetFalse(argv["method-trace"]) ? false
-        : isSetFalse(process.env.METHOD_TRACE) ? false
-        : true,
-    METHOD_HEAD : isSetFalse(argv["method-head"]) ? false
-        : isSetFalse(process.env.METHOD_HEAD) ? false
-        : true,
-    WEBSOCKETS : isSetFalse(argv["websockets"]) ? false
-        : isSetFalse(process.env.WEBSOCKETS) ? false
-        : true,
+    PEEK : isSetFalse(argv["peek"], isSetFalse(process.env.PEEK, true)),
+    METHOD_ALL_HTTP :
+        isSetFalse(
+            argv["method-all-http"],
+            isSetFalse(process.env.METHOD_ALL_HTTP, true)),
+    METHOD_GET : isSetFalse(
+            argv["method-get"],
+            isSetFalse(process.env.METHOD_GET, true)),
+    METHOD_PUT : isSetFalse(
+            argv["method-put"],
+            isSetFalse(process.env.METHOD_PUT, true)),
+    METHOD_POST: isSetFalse(
+            argv["method-post"],
+            isSetFalse(process.env.METHOD_POST, true)),
+    METHOD_DELETE: isSetFalse(
+            argv["method-delete"],
+            isSetFalse(process.env.METHOD_DELETE, true)),
+    METHOD_PATCH : isSetFalse(
+            argv["method-patch"],
+            isSetFalse(process.env.METHOD_PATCH, true)),
+    METHOD_TRACE : isSetFalse(
+            argv["method-trace"],
+            isSetFalse(process.env.METHOD_TRACE, true)),
+    METHOD_HEAD : isSetFalse(
+            argv["method-get"],
+            isSetFalse(process.env.METHOD_GET, true)),
+    WEBSOCKETS : isSetFalse(
+            argv["websockets"],
+            isSetFalse(process.env.WEBSOCKETS, true)),
     DB_URL : (argv["db-url"] || process.env.DB_URL)
         || (argv["db-protocol"]
             || process.env.DB_PROTOCOL
@@ -230,7 +221,7 @@ var OPTIONS = {
 ////
 //Application
 ////
-
+var server;
 var setOptions = function(opts, first){
     var diff = {};
     if(opts.BASE_TYPE !== undefined){
@@ -305,62 +296,45 @@ var setOptions = function(opts, first){
         OPTIONS.WEBSOCKETS = diff.WEBSOCKETS.new;
     }
     if(first){
-        if(opts.METHOD_ALL_HTTP !== undefined){
-            diff.METHOD_ALL_HTTP = {
-                old : OPTIONS.METHOD_ALL_HTTP,
-                new : !!opts.METHOD_ALL_HTTP
-            }
-            OPTIONS.METHOD_ALL_HTTP = diff.METHOD_ALL_HTTP.new;
+        diff.METHOD_ALL_HTTP = {
+            new : !!opts.METHOD_ALL_HTTP
         }
-        if(opts.METHOD_GET !== undefined){
-            diff.METHOD_GET = {
-                old : OPTIONS.METHOD_GET,
-                new : !!opts.METHOD_GET
-            }
-            OPTIONS.METHOD_GET = diff.METHOD_GET.new;
+        OPTIONS.METHOD_ALL_HTTP = diff.METHOD_ALL_HTTP.new;
+
+        diff.METHOD_GET = {
+            new : !!opts.METHOD_GET
         }
-        if(opts.METHOD_PUT !== undefined){
-            diff.METHOD_PUT = {
-                old : OPTIONS.METHOD_PUT,
-                new : !!opts.METHOD_PUT
-            }
-            OPTIONS.METHOD_PUT = diff.METHOD_PUT.new;
+        OPTIONS.METHOD_GET = diff.METHOD_GET.new;
+
+        diff.METHOD_PUT = {
+            new : !!opts.METHOD_PUT
         }
-        if(opts.METHOD_POST !== undefined){
-            diff.METHOD_POST = {
-                old : OPTIONS.METHOD_POST,
-                new : !!opts.METHOD_POST
-            }
-            OPTIONS.METHOD_POST = diff.METHOD_POST.new;
+        OPTIONS.METHOD_PUT = diff.METHOD_PUT.new;
+
+        diff.METHOD_POST = {
+            new : !!opts.METHOD_POST
         }
-        if(opts.METHOD_DELETE !== undefined){
-            diff.METHOD_DELETE = {
-                old : OPTIONS.METHOD_DELETE,
-                new : !!opts.METHOD_DELETE
-            }
-            OPTIONS.METHOD_DELETE = diff.METHOD_DELETE.new;
+        OPTIONS.METHOD_POST = diff.METHOD_POST.new;
+
+        diff.METHOD_DELETE = {
+            new : !!opts.METHOD_DELETE
         }
-        if(opts.METHOD_PATCH !== undefined){
-            diff.METHOD_PATCH = {
-                old : OPTIONS.METHOD_PATCH,
-                new : !!opts.METHOD_PATCH
-            }
-            OPTIONS.METHOD_PATCH = diff.METHOD_PATCH.new;
+        OPTIONS.METHOD_DELETE = diff.METHOD_DELETE.new;
+
+        diff.METHOD_PATCH = {
+            new : !!opts.METHOD_PATCH
         }
-        if(opts.METHOD_TRACE !== undefined){
-            diff.METHOD_TRACE = {
-                old : OPTIONS.METHOD_TRACE,
-                new : !!opts.METHOD_TRACE
-            }
-            OPTIONS.METHOD_TRACE = diff.METHOD_TRACE.new;
+        OPTIONS.METHOD_PATCH = diff.METHOD_PATCH.new;
+
+        diff.METHOD_TRACE = {
+            new : !!opts.METHOD_TRACE
         }
-        if(opts.METHOD_HEAD !== undefined){
-            diff.METHOD_HEAD = {
-                old : OPTIONS.METHOD_HEAD,
-                new : !!opts.METHOD_HEAD
-            }
-            OPTIONS.METHOD_HEAD = diff.METHOD_HEAD.new;
+        OPTIONS.METHOD_TRACE = diff.METHOD_TRACE.new;
+
+        diff.METHOD_HEAD = {
+            new : !!opts.METHOD_HEAD
         }
+        OPTIONS.METHOD_HEAD = diff.METHOD_HEAD.new;
     }
     if(!first){
         LOG("OPTIONS:")
@@ -581,10 +555,6 @@ var placeOnChannel = function(key, message, type, binary){
 }
 
 var socketConnection = function(socket) {
-    if(!OPTIONS.WEBSOCKETS){
-        socket.close();
-        return;
-    }
     LOG("SOCKET CONNECTED", socket.readyState);
     socket.on("close", function(reason){
         LOG("SOCKET CLOSED", socket._closeCode, socket._closeMessage);
@@ -595,13 +565,13 @@ var socketConnection = function(socket) {
     if(key.indexOf(socketMountPoint) === 0){
         key = key.substr(socketMountPoint.length)
     }else if(socketMountPoint !== "/"){
-        key = ""
-    }
+        key = "_";
+    }/*
     if(!key){
         socket.send("Please connect using " + socketMountPoint + ":key");
         socket.close();
         return;
-    }
+    }*/
 
     var query = path.query;
     socket.att = {};
@@ -813,7 +783,7 @@ var rawBody = function(request, response, next){
 ////
 
 var getFunc = function(request, response){
-    var key = request.params.key;
+    var key = request.params.key || "_";
     if(request.params[0]) key += request.params[0];
     var obj = {
         key : key,
@@ -903,7 +873,7 @@ var getFunc = function(request, response){
 
 
 var putFunc = function(request, response){
-    var key = request.params.key;
+    var key = request.params.key || "_";
     if(request.params[0]) key += request.params[0];
     var obj = {
         key : key,
@@ -1034,31 +1004,41 @@ var initRoutes = function(options){
     if(OPTIONS.STATIC) app.use(express.static(__dirname + "/static"));
     return q(OPTIONS)
 }
+var unroute = function(router, path){
+
+}
+
+var wss;
 var mountSocket = function(server, mountPoint){
-    var wss = new WS({ server: server});
+    wss = new WS({ server: server});
     socketMountPoint =
     (mountPoint || "")
     .split("/")
     .filter(function(item){return !!item})
     .join("/") + "/";
     wss.on('connection', socketConnection);
+    console.log("M", wss)
 }
+var unmountSocket = function(){
+    if(wss) wss._server = undefined;
+    console.log("U", wss)
+}
+
 var app = express();
 var main = module.exports = function(options){
     initDB(OPTIONS = options || OPTIONS)
     .then(function(options){
+        if(require.main === module){
+            server = app.listen(options.PORT);
+            if(OPTIONS.WEBSOCKETS)
+                mountSocket(server);
+            LOG("http store started");
+            LOG("__________________");
+        }
         return setOptions(options, true);
     })
     .then(initRoutes)
     .then(function(options){
-        var ItsThinking = require("its-thinking");
-        var spinner = new ItsThinking(1)
-        if(require.main === module){
-            mountSocket(app.listen(options.PORT));
-            spinner.start("http store running... ")
-            LOG("http store started");
-            LOG("__________________");
-        }
         for(o in OPTIONS){
             LOG(o, OPTIONS[o]);
         }
@@ -1077,6 +1057,7 @@ var exitHandler = function(options, error){
 }
 process.on("SIGINT", exitHandler);
 app.mountSocket = mountSocket;
+app.unmountSocket = unmountSocket;
 if(require.main === module){
     main(OPTIONS)
 }else{
