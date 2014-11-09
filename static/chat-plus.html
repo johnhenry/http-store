@@ -38,10 +38,9 @@
         var reconnectInterval;
         var sendSocket;
         var receiveSocket;
-
-
-
         var connect = function(){
+            delete sendSocket;
+            delete receiveSocket;
             reconnectInterval = 1000;
             var chatroom = $('#chatroom').val();
             var receiving;
