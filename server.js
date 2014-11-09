@@ -98,7 +98,7 @@ var rawbody = require('raw-body');
 var jsonpatch = require('jsonpatch');
 
 if(argv.version){
-    console.log("0.5.6");
+    console.log("0.5.7");
     process.exit();
 }
 var LOG = function(){};
@@ -544,6 +544,7 @@ var pushUpdate = function(key, obj, skip){
 }
 
 var placeOnChannel = function(key, message, type, binary){
+    //if(type.indexOf("application/json") === -1) message = JSON.parse(message);
     var obj = {
         key : key,
         value : message,
@@ -1017,11 +1018,9 @@ var mountSocket = function(server, mountPoint){
     .filter(function(item){return !!item})
     .join("/") + "/";
     wss.on('connection', socketConnection);
-    console.log("M", wss)
 }
 var unmountSocket = function(){
     if(wss) wss._server = undefined;
-    console.log("U", wss)
 }
 
 var app = express();

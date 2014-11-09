@@ -3,6 +3,9 @@
 ##Changelog
 The change version _does not_ conform to semantic versioning.
 
+###0.5.7
++ Added - Chat Plus Demo
+
 ###0.5.6
 + Fix - Secure Sockets in Chat Demo
 

@@ -1,60 +1,143 @@
 <!doctype html>
 <html>
     <head>
+        <title>Chat Plus</title>
         <script src='//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js'></script>
     </head>
     <body>
         <h1>Chat Plus</h1>
-        <h2>Rhobust real-time Chat Application</h2>
+        <h2>Robust real-time Chat Application</h2>
         <p>
-            This application is similar to the <a href="chat.html" >original chat application</a> but features a more rhobust feature set including:
+            This application is similar to the <a href="chat.html" >original chat application</a> but features a more robust feature set including:
             <ul>
+                <li>Chatroom Choice</li>
                 <li>Automatic Reconnection</li>
+                <li>Randomly Generated Ids</li>
+                <li>Chatroom/name, timestamp on hover over Id.</li>
+                <li>Dedicated send and recieve channels.</li>
             </ul>
         </p>
         <hr />
-        <div id='messagesDiv'></div>
-        <span id='name'>:)</span>
-        <input type='text' id='messageInput' placeholder='Message'>
-        <br />
+        ID: <input id='name'>
+        <div id="connectBox">
+            Chatroom: <input id='chatroom' value="chatroom">
+            <button id="connectButton"
+            type="button" >Connect</button>
+        </div>
+        <div id="disconnectBox" style="display:none">
+            Chatroom: <span id='chatroomconnected'></span>
+            <button id="disconnectButton"
+            type="button" >Disconnect</button>
+            <hr />
+            <div id='messagesDiv'></div>
+            <input type='text' id='messageInput' placeholder='Message'> <button id="sendButton" type="button" >Send</button>
+            <br />
+        </div>
         <script>
-        var name = String(Math.random()).substr(2);
-        $('#name').html(name);
-        var chatroom = "chatroom";
-        var host =
-        (location.protocol === "http:" ? "ws://" : "wss://" ) +
-        location.hostname
-        + ((location.port !== 80 && location.port) ? ":" + location.port : "")
-        + "/" + chatroom//key
-        + "?listen=true&peek=true";//attributes
-        var myDataRef;
-        var reconnectInterval = 1000;
+        $('#name').val(String(Math.random()).substr(2));
+        var reconnectInterval;
+        var sendSocket;
+        var receiveSocket;
+
+
+
         var connect = function(){
-            myDataRef = new WebSocket(host);
-            $('#messageInput').keypress(function (e) {
-                if (e.keyCode == 13) {//Enter Key
-                    var text = $('#messageInput').val();
-                    myDataRef.send("enqueue " + JSON.stringify({name: name, text: text}));
-                    $('#messageInput').val('');
-                }
-            });
-            myDataRef.onmessage = function(message){
-                if(message.data){//New Data Incoming
-                    message = JSON.parse(message.data);
-                    displayChatMessage(message.name, message.text);
-                }else{//New Data Available
-                    myDataRef.send("pop");
-                }
+            reconnectInterval = 1000;
+            var chatroom = $('#chatroom').val();
+            var receiving;
+            var sending;
+            var host =
+            (location.protocol === "http:" ? "ws://" : "wss://" ) +
+            location.hostname
+            + ((location.port !== 80 && location.port) ? ":" + location.port : "")
+            + "/" + chatroom;
+            //Connect Sender
+            var sendHost =
+            host + "?queue=true&type=application/json&listen=true"
+            console.log("Connecting to", sendHost);
+            sendSocket = new WebSocket(sendHost);
+            sendSocket.onopen = function(){
+                sending = true;
             }
-            myDataRef.onclose = myDataRef.onerror = function() {
-                setTimeout(connect, reconnectInterval);
+            $('#chatroomconnected').html(chatroom);
+            sendSocket.onmessage = function(message){
+                receiveSocket.send("pop");
+            }
+            //Conect Receiver
+            var recieveHost =
+            host + "?peek=true&full=true"
+            console.log("Connecting to", recieveHost);
+            receiveSocket = new WebSocket(recieveHost);
+            receiveSocket.onopen = function(){
+                $("#connectBox").hide();
+                $("#disconnectBox").show();
+                receiving = true;
+            }
+            receiveSocket.onmessage = function(message){
+                var data = JSON.parse(message.data);
+                var value = JSON.parse(data.value);
+                displayChatMessage(
+                    value.name,
+                    value.text,
+                    value.room,
+                    data.date)
+            }
+
+            sendSocket.onclose
+            = sendSocket.onerror
+            = function() {
+                if(receiving) receiveSocket.close();
+                if(sending) setTimeout(connect, reconnectInterval);
+                sending = false;
+            };
+
+            receiveSocket.onclose
+            = receiveSocket.onerror
+            = function() {
+                $("#connectBox").show();
+                $("#disconnectBox").hide();
+                if(sending) sendSocket.close();
+                if(receiving) setTimeout(connect, reconnectInterval);
+                receiving = false;
             };
         };
-        connect();
-        var displayChatMessage = function(name, text) {
-            $('<div/>').text(text).prepend($('<em/>').text(name+': ')).appendTo($('#messagesDiv'));
+        var sendMessage = function (e) {
+            var text = $('#messageInput').val();
+            if(sendSocket)
+                sendSocket
+                .send(
+                    JSON.stringify(
+                    {
+                        name: $('#name').val(),
+                        text: text,
+                        room: $('#chatroomconnected').text()
+                    }));
+            $('#messageInput').val('');
+        }
+        var disconnect = function(){
+            sending = recieving = false;
+            sendSocket.close();
+            receiveSocket.close();
+        }
+        var sendByKey = function (e) {
+            if (e.keyCode == 13) sendMessage();
+        }
+        var connectByKey = function (e) {
+            if (e.keyCode == 13) connect();
+        }
+        var displayChatMessage = function(name, text, room, date) {
+            $('<div />')
+            .text(text)
+            .prepend($('<span title="Chatroom: '+ room +'\nTimestamp: '+ new Date(date) +' \n " style="cursor: pointer; cursor: hand;" />')
+            .text(name + ': '))
+            .appendTo($('#messagesDiv'));
             $('#messagesDiv')[0].scrollTop = $('#messagesDiv')[0].scrollHeight;
         };
+        $('#chatroom').keypress(connectByKey);
+        $('#messageInput').keypress(sendByKey);
+        $('#sendButton').click(sendMessage);
+        $('#connectButton').click(connect);
+        $('#disconnectButton').click(disconnect);
         </script>
     </body>
 </html>

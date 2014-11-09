@@ -1,6 +1,6 @@
 {
   "name": "http-store",
-  "version": "0.5.6",
+  "version": "0.5.7",
   "description": "Generic DataStore Using HTTP Verbs",
   "main": "server.js",
   "bin": {
@@ -13,7 +13,7 @@
     "localmongocleanup": "rm -rf data/",
     "local": "./server.js -svu --db-url mongodb://localhost/http-store",
     "wscat": "echo wscat -c http://$HOST/$KEY?queue=$QUEUE\\&binary=$BINARY\\&type=$TYPE\\&public=$PUBLIC\\&full=$FULL\\&peek=$PEEK\\&subscribe=$SUBSCRIBE\\&listen=$LISTEN && wscat -c http://$HOST/$KEY?queue=$QUEUE\\&binary=$BINARY\\&type=$TYPE\\&public=$PUBLIC\\&full=$FULL\\&peek=$PEEK\\&subscribe=$SUBSCRIBE\\&listen=$LISTEN",
-    "push": "npm publish && git push && git push heroku"
+    "push": "git push && git push heroku && npm publish && sudo npm -g update http-store"
   },
   "repository": "https://github.com/johnhenry/http-store",
   "keywords": [
