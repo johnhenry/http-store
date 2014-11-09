@@ -8,5 +8,6 @@
 - Added get, post alias for pop/dequeue, enqueue (respectively) to websockets
 - Added fetch <id> <public?> to websockets
 - Added ?id,?public param to GET, DELETE http
+- Added - Windows executable
 #Investigate
 - PEEK not working properly?

@@ -99,7 +99,7 @@ var rawbody = require('raw-body');
 var jsonpatch = require('jsonpatch');
 
 if(argv.version){
-    console.log("0.5.7");
+    console.log("0.5.8");
     process.exit();
 }
 var LOG = function(){};

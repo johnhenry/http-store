@@ -3,6 +3,9 @@
 ##Changelog
 The change version _does not_ conform to semantic versioning.
 
+###0.5.8
++ Fixed - Chat Plus Demo Reconnection Issues
+
 ###0.5.7
 + Added - Chat Plus Demo
 
