@@ -83,15 +83,14 @@
                     data.date)
             }
             sendSocket.onclose
-            = sendSocket.onerror
+            //= sendSocket.onerror
             = function() {
                 if(receiving) receiveSocket.close();
-                if(sending) setTimeout(connect, reconnectInterval);
                 sending = false;
             };
 
             receiveSocket.onclose
-            = receiveSocket.onerror
+            //= receiveSocket.onerror
             = function() {
                 $("#connectBox").show();
                 $("#disconnectBox").hide();
