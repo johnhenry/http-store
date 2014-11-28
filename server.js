@@ -11,7 +11,7 @@ var yargs = require('yargs')
     .describe("help", "Show [this] help screen.")
         .alias("help", "h")
     .describe("version", "Display version")
-        .alias("verbose","V")
+        .alias("version","V")
         .boolean("version")
     .describe("verbose", "Print verbose output to the command line.")
         .alias("verbose","v")
@@ -37,9 +37,9 @@ var yargs = require('yargs')
     .describe("capture-headers", "Store headers along with body.")
         .boolean("capture-headers")
         .alias("capture-headers","c")
-    .describe("http-queue", "Retreve as queue by default.")
-        .boolean("http-queue")
-        .alias("http-queue","q")
+    .describe("queue", "Retreve as queue by default.")
+        .boolean("queue")
+        .alias("queue","q")
     .describe("allow-set-date","Allow date to be set via request headers." )
         .alias("allow-set-date","d")
     .boolean("allow-set-date")
@@ -97,9 +97,9 @@ var q = require('q');
 var express = require('express');
 var rawbody = require('raw-body');
 var jsonpatch = require('jsonpatch');
-
+var commanderSocket = require('./commander-socket')
 if(argv.version){
-    console.log("0.5.8");
+    console.log("0.6.0");
     process.exit();
 }
 var LOG = function(){};
@@ -151,8 +151,8 @@ var Binary = mongodb.Binary;
 var db;
 var dbcollection;
 var channels = {
-    listen : {},
-    subscribe : {}
+    listen:{},
+    receive:{}
 };
 //Set options based on environmental variables
 var OPTIONS = {
@@ -172,8 +172,8 @@ var OPTIONS = {
     CAPTURE_HEADERS : isSetTrue(argv["capture-headers"])
         || isSetTrue(process.env.CAPTURE_HEADERS)
         || false,
-    HTTP_QUEUE : isSetTrue(argv["http-queue"])
-        || isSetTrue(process.env.HTTP_QUEUE)
+    QUEUE : isSetTrue(argv["queue"])
+        || isSetTrue(process.env.QUEUE)
         || false,
     ALLOW_SET_DATE : isSetTrue(argv["allow-set-date"])
         || isSetTrue(process.env.ALLOW_SET_DATE)
@@ -268,12 +268,12 @@ var setOptions = function(opts, first){
         }
         OPTIONS.CAPTURE_HEADERS = diff.CAPTURE_HEADERS.new;
     }
-    if(opts.HTTP_QUEUE !== undefined){
-        diff.HTTP_QUEUE = {
-            old : OPTIONS.HTTP_QUEUE,
-            new : !!opts.HTTP_QUEUE
+    if(opts.QUEUE !== undefined){
+        diff.QUEUE = {
+            old : OPTIONS.QUEUE,
+            new : !!opts.QUEUE
         }
-        OPTIONS.HTTP_QUEUE = diff.HTTP_QUEUE.new;
+        OPTIONS.QUEUE = diff.QUEUE.new;
     }
     if(opts.ALLOW_SET_DATE !== undefined){
         diff.ALLOW_SET_DATE = {
@@ -380,7 +380,7 @@ var removeOnePromise = function (id){
     return d.promise;
 }
 
-var getPromise = function (key, order, index, remove, skip){
+var getPromise = function (key, order, index, remove){
     var d = q.defer();
     var callback = function(error, result){
         if(error) d.reject(error);
@@ -390,26 +390,20 @@ var getPromise = function (key, order, index, remove, skip){
             result = result[0];
             if(result && result.binary && result.binary.buffer){
                 result.value = result.binary.buffer;
+                result.binary = true;//Binary
             }
             if(!remove || !result || !result._id) {
                 if(!result || !result._id){
                     d.reject(result);
                     return;
                 }
-                pushUpdate(key,
-                    result, skip);
                 d.resolve(result);
                 return;
             }
             removeOnePromise(result._id)
                 .then(function(){
-                    pushUpdate(key,
-                    result, skip);
                     d.resolve(result);
-
                 }).fail(function(){
-                    pushUpdate(key,
-                        result, skip);
                     d.resolve(result);
                 })
             return;
@@ -426,6 +420,45 @@ var getPromise = function (key, order, index, remove, skip){
     )
     return d.promise;
 }
+var getPromiseById = function (key, id, remove){
+    var d = q.defer();
+    var callback = function(error, result){
+        if(error) d.reject(error);
+        if(result) result.toArray(function(error, result){
+            if(error) d.reject(error);
+            if(!result.length) d.reject(result);
+            result = result[0];
+            if(result && result.binary && result.binary.buffer){
+                result.value = result.binary.buffer;
+                result.binary = true;//Binary
+            }
+            if(!remove || !result || !result._id) {
+                if(!result || !result._id){
+                    d.reject(result);
+                    return;
+                }
+                d.resolve(result);
+                return;
+            }
+            removeOnePromise(result._id)
+                .then(function(){
+                    d.resolve(result);
+                }).fail(function(){
+                        d.resolve(result);
+                    })
+                    return;
+                })
+            }
+    dbcollection.find(
+        { $query:
+            { _id : ObjectID(id), key : key}},
+            {headers : false},
+            { limit : 1},
+            callback
+        )
+    return d.promise;
+}
+
 var getEmptyPromise = function (key, order, index){
     var d = q.defer();
     var callback = function(error, result){
@@ -452,6 +485,31 @@ var getEmptyPromise = function (key, order, index){
     return d.promise;
 }
 
+
+var getEmptyPromiseById = function (key, id){
+    var d = q.defer();
+    var callback = function(error, result){
+        if(error) d.reject(error);
+        if(result) result.toArray(function(error, result){
+            if(error || !result) d.reject(error);
+            if(result && !result.length){
+                d.reject(result);
+                return;
+            }
+            result = result[0];
+            d.resolve(result);
+        })
+    }
+    dbcollection.find(
+        { $query:
+            { _id : ObjectID(id), key : key}},
+        {value:false, headers:false},
+        { limit : 1},
+        callback
+    )
+    return d.promise;
+}
+
 var insertPromise = function(obj, binary){
     var d = q.defer();
     if(binary) {
@@ -461,7 +519,7 @@ var insertPromise = function(obj, binary){
     var callback = function(error, result){
         if(error) d.reject(error);
         else d.resolve(result);
-        insertUpdate(obj.key);
+        insertUpdate(obj.key, obj._id);
     }
     dbcollection.insert(
         obj,
@@ -474,6 +532,7 @@ var insertPromise = function(obj, binary){
 //Socket
 ////
 var onChannel = function(channelName, key, socket){
+    channels[channelName] = channels[channelName] || []
     var chan = channels[channelName][key];
     if(!chan) return false;
     if(!chan.length) return false;
@@ -528,19 +587,12 @@ var removeFromAllChannels = function(socket){
 var insertUpdate = function(key, id){
     var sockets = channels.listen[key] || [];
     sockets.forEach(function(socket){
-        socket.send();
-    })
-}
-var pushUpdate = function(key, obj, skip){
-    var sockets = channels.subscribe[key] || [];
-    if(skip) sockets.forEach(function(socket){
-        if(socket !== skip){
-            if(socket.att.full){
-                socket.send(JSON.stringify(obj));
-            }else{
-                socket.send(obj.value)
-            }
+        if(socket.att.verbose){
+            socket.send(String(id));
+        }else{
+            socket.send();
         }
+
     })
 }
 
@@ -556,7 +608,7 @@ var placeOnChannel = function(key, message, type, binary){
     return insertPromise(obj, binary);
 }
 
-var socketConnection = function(socket) {
+var socketConnection = function(socket){
     LOG("SOCKET CONNECTED", socket.readyState);
     socket.on("close", function(reason){
         LOG("SOCKET CLOSED", socket._closeCode, socket._closeMessage);
@@ -574,154 +626,236 @@ var socketConnection = function(socket) {
         socket.close();
         return;
     }*/
-
     var query = path.query;
-    socket.att = {};
-    socket.att.queue = isSetTrue(query.queue);//?queue=
-    socket.att.peek = isSetTrue(query.peek) && OPTIONS.PEEK;//?peek=
+    socket.att = {key:key}
+    socket.att.peek = isSetTrue(query.peek, OPTIONS.PEEK);//?peek=
     socket.att.full = isSetTrue(query.full);//?full=
     socket.att.binary = isSetTrue(query.binary);//?binary=
-    socket.att.public = isSetTrue(query.public);//?public=
     socket.att.type = query.type || "";//?type=
+    socket.att.verbose = isSetTrue(query.verbose);
+    //?verbose=
     if(isSetTrue(query.listen)){
         addToChannel("listen", key, socket);
     }
-    if(isSetTrue(query.subscribe)){
-        addToChannel("subscribe", key, socket);
+    if(isSetTrue(query.receive)){
+        addToChannel("receive", key, socket);
     }
-    if(query.enqueue !== undefined){
+    var place = query.enqueue || query.push;
+    if(place !== undefined){
         placeOnChannel(
-            key, query.enqueue, socket.att.type, socket.att.binary)
+            socket.att.key, place, socket.att.type, socket.att.binary)
             .then(function(result){
                 LOG("PUT", result[0]);
             })
     }
 
-    socket.on("message", function(message){
-        message = message || "";
-        if(socket.att.queue){
+    var setBinary = function(broadcast, rawmessage, socket){
+        socket.att.type = undefined;
+        socket.att.binary = true;
+        startQueue(socket, isSetTrue(broadcast));
+    }
+    var setQueue = function(binary, type, rawmessage, socket){
+        binary = binary !== undefined? isSetTrue(binary) : socket.att.binary;
+        type = type !== undefined? type : socket.att.type;
+        socket.att.binary = binary;
+        socket.att.type = type;
+        startQueue(socket);
+    }
+    var setBroadcast = function(binary, type, rawmessage, socket){
+        binary = binary !== undefined? isSetTrue(binary) : socket.att.binary;
+        type = type !== undefined? type : socket.att.type;
+        socket.att.binary = binary;
+        socket.att.type = type;
+        startQueue(socket, true);
+    }
+    var startQueue = function(socket, broadcast){
+        if(broadcast){
+            socket.on("message", function(message){
+                var sockets = channels.receive[socket.att.key] || [];
+                sockets.forEach(function(thisSocket){
+                    if(socket !== thisSocket) thisSocket.send(message);
+                })
+            })
+        }else{
+            socket.on("message", function(message){
+                placeOnChannel(
+                    socket.att.key,
+                    message,
+                    socket.att.type,
+                    socket.att.binary)
+                    .then(function(result){
+                        LOG("PUT", result[0]);
+                    }
+                )
+            })
+        }
+        socket.send(
+            (broadcast ? "+broadcast:" : "+queue:" )
+            + " " + (socket.att.binary ? "+binary" : "-binary")
+            + (socket.att.type ? " " + socket.att.type : ""));
+    }
+
+    var enqueue = function(message, rawmessage, socket){
             placeOnChannel(
-                key, message, socket.att.type, socket.att.binary)
+                socket.att.key,
+                message.join(" "),
+                socket.att.type,
+                socket.att.binary)
                 .then(function(result){
                     LOG("PUT", result[0]);
                 })
+    }
+    var sendMessage = function(message, rawmessage, socket){
+        var sockets = channels.receive[socket.att.key] || [];
+        message = message.join(" ");
+        sockets.forEach(function(thisSocket){
+            if(socket !== thisSocket) thisSocket.send(message);
+        });
+        LOG("SEND", message);
+    }
+
+    var put = function(message, rawmessage, socket){
+        removeAllPromise(socket.att.key)
+        .then(function(){
+            return placeOnChannel(
+                socket.att.key,
+                message.join(" "),
+                socket.att.type,
+                socket.att.binary)
+                .then(function(result){
+                    LOG("PUT", result[0]);
+                })
+        })
+    }
+    var del = function(confirmation, rawmessage, socket){
+        if(isSetTrue(confirmation)){
+            removeAllPromise(socket.att.key)
+            .then(function(result){
+                socket.send("deleted");
+            })
             return;
         }
-        message = message.split(" ");
-        var command = message.shift();
-        switch(command){
-            //Sending
-            case "enqueue":
-                //Add item to queue with the set encoding and type
-                //enqueue <object>
-                message = message.join(" ");
-                var p = placeOnChannel(
-                    key, message, socket.att.type, socket.att.binary);
-                    p.then(function(result){
-                        LOG("PUT", result[0]);
-                    })
-                break;
-            case "binary":
-                //Set Enqueue Encoding
-                //binary <boolean>
-                socket.att.binary = isSetTrue(message[0], !socket.att.binary);
-                socket.send(socket.att.binary ? "+binary" : "-binary");
-                break;
-            case "type":
-                //Set Enqueue Type
-                //type <type>
-                socket.att.type = message[0];
-                socket.send("type " + socket.att.type);
-                break;
-            case "queue":
-                //Converts sockets such that all further messages will
-                //be enqueued and commands will not be separated.
-                //messages
-                //queue <binary> <type>)
-                //all further messages will be enqueued
-                socket.att.queue = true;
-                socket.att.binary = isSetTrue(message[0], socket.att.binary);
-                socket.att.type = message[1] ? message[1] :  socket.att.type;
-                socket.send(
-                    "+queue"
-                    + " " + (socket.att.binary ? "+binary" : "-binary")
-                    + " " + socket.att.type);
-                break;
-            //Receiving
-            case "dequeue":
-            case "pop":
-                //Remove Item From of Queue/Stack
-                //dedueue/pop <peek=false> <full=false> <index=0>
-                var index = isInt(message[0]) ? Number(message[0]) : 0;
-                var p = isSetTrue(message[1], socket.att.peek);
-                var f = isSetTrue(message[2], socket.att.full);
-                var pub = isSetTrue(message[3], socket.att.public);
-                var order = command === "dequeue" ? 1 : -1;
-                getPromise(key, order, index, !p,
-                    pub ? socket : undefined).then(function(result){
-
-                        if(f){
-                            socket.send(JSON.stringify(result));
-                        }else{
-                            socket.send(result.value);
-                        }
-                    })
-                break;
-            case "peek":
-                var p = message[0];
-                if(isSetTrue(p)) socket.att.peek = true;
-                else if(isSetFalse(p)) socket.att.peek = false;
-                else socket.att.peek = !socket.att.peek;
-                socket.att.peek = socket.att.peek && OPTIONS.PEEK;
-                socket.send(socket.att.peek ? "+peek" : "-peek");
-                break;
-            case "public":
-                var p = message[0];
-                if(isSetTrue(p)) socket.att.public = true;
-                else if(isSetFalse(p)) socket.att.public = false;
-                else socket.att.public = !socket.att.public;
-                socket.send(socket.att.public ? "+public" : "-public");
-                break;
-            case "full":
-                var f = message[0];
-                if(isSetTrue(f)) socket.att.full = true;
-                else if(isSetFalse(f)) socket.att.full = false;
-                else socket.att.full = !socket.att.full;
-                socket.send(socket.att.full ? "+full" : "-full");
-                break;
-            //Channels
-            case "listen":
-                var sub = message[0]
-                    if(isSetTrue(sub)){
-                        addToChannel("listen", key, socket);
-                        sub = true;
-                    }
-                    else if(isSetFalse(sub)){
-                        removeFromChannel("listen", key, socket);
-                        sub = false;
-                    }
-                    else
-                        sub =
-                        toggleChannel("listen", key, socket);
-                socket.send(sub ? "+listen" : "-listen");
-                break;
-            case "subscribe":
-                var sub = message[0]
-                    if(isSetTrue(sub)){
-                        addToChannel("subscribe", key, socket);
-                        sub = true;
-                    }
-                    else if(isSetFalse(sub)){
-                        removeFromChannel("subscribe", key, socket);
-                        sub = false;
-                    }
-                    else
-                        sub =
-                        toggleChannel("subscribe", key, socket);
-                socket.send(sub ? "+subscribe" : "-subscribe");
-                break;
+    }
+    var fetch = function(id, full, peek, rawmessage, socket){
+        peek =
+            peek !== undefined ?
+            isSetTrue(peek) : socket.att.peek;
+        full =
+            full !== undefined ?
+            isSetTrue(full) : socket.att.full;
+        getPromiseById(
+            socket.att.key,
+            id,
+            !peek)
+            .then(function(result){
+                if(full){
+                    socket.send(JSON.stringify(result), {binary:result.binary});
+                }else{
+                    socket.send(result.value, {binary:result.binary});
+                }
+            })
+    }
+    var popDequeue = function(index, full, peek, rawmessage, socket){
+        var command = rawmessage.split(" ")[0];
+        peek =
+            peek !== undefined ?
+            isSetTrue(peek) : socket.att.peek;
+        full =
+            full !== undefined ?
+            isSetTrue(full) : socket.att.full;
+        if(command === "get"){
+            if(OPTIONS.QUEUE){
+                command = "dequeue";
+            }else{
+                command = "pop";
+            }
         }
-    })
+        var order = command === "dequeue" ? 1 : -1;
+        getPromise(
+            socket.att.key,
+            order,
+            index,
+            !peek)
+        .then(function(result){
+            if(full){
+                socket.send(JSON.stringify(result), {binary:result.binary});
+            }else{
+                socket.send(result.value, {binary:result.binary});
+            }
+        })
+    }
+
+    var updateArbitrary = function(attrubuteName){
+        return function(arbitrary, rawmessage, socket){
+            socket.att[attrubuteName] =
+                arbitrary !== undefined ? arbitrary :
+                socket.att[attrubuteName];
+            socket.send(
+                "+" + attrubuteName +
+                " " + socket.att[attrubuteName]);
+        }
+    }
+    var toggleAttribute = function(attributeName){
+        return function(toggled, rawmessage, socket){
+            socket.send(
+                (socket.att[attributeName]
+                = isSetTrue(toggled, !socket.att[attributeName]) ) ?
+                "+" + attributeName : "-" + attributeName);
+        }
+    }
+    var subscribeTo = function(channelName){
+        return function(subscribed, rawmessage, socket){
+            var sub = subscribed;
+            if(isSetTrue(sub)){
+                addToChannel(channelName, key, socket);
+                sub = true;
+            }
+            else if(isSetFalse(sub)){
+                removeFromChannel(channelName, key, socket);
+                sub = false;
+            }
+            else
+                sub =
+                toggleChannel(channelName, key, socket);
+            socket.send(sub ? "+" + channelName : "-" + channelName);
+        }
+    }
+
+    if(isSetTrue(query.queue)){
+        startQueue(socket)
+        return;
+    }
+    if(isSetTrue(query.broadcast)){
+        startQueue(socket, true)
+        return;
+    }
+    var cmdSkt =
+    commanderSocket()
+    .cmd("queue [binary] [type]", setQueue)
+    .cmd("broadcast [binary] [type]", setBroadcast)
+    .cmd("binary [broadcast]", setBinary)
+    .cmd("send <message...>", sendMessage)
+    .cmd("enqueue <message...>", enqueue)
+    .cmd("post <message...>", enqueue)
+    .cmd("push <message...>", enqueue)
+    .cmd("put <message...>", put)
+    .cmd("delete <confirmation>", del)
+    .cmd("fetch <obj_id> [full] [peek]", fetch)
+    .cmd("pop [index] [full] [peek]", popDequeue)
+    .cmd("dequeue [index] [full] [peek]", popDequeue)
+    .cmd("get [index] [full] [peek]", popDequeue)
+    .cmd("type [arbitrary]", updateArbitrary("type"))
+    .cmd("binary [toggled]", toggleAttribute("binary"))
+    .cmd("peek [toggled]", toggleAttribute("peek"))
+    .cmd("full [toggled]", toggleAttribute("full"))
+    .cmd("verbose [toggled]",  toggleAttribute("verbose"))
+    .cmd("listen [subscribed]",  subscribeTo("listen"))
+    .cmd("receive [subscribed]", subscribeTo("receive"))
+    .fail(function(e){
+        socket.send(e.message)
+    });
+    cmdSkt.init(socket);
+    return;
 }
 
 ////
@@ -798,7 +932,7 @@ var getFunc = function(request, response){
     var order;
     var remove;
     var respond;
-    if(OPTIONS.HTTP_QUEUE){
+    if(OPTIONS.QUEUE){
         order = isSetTrue(request.query.pop) ? -1 : 1;
         remove =
             (request.method === "DELETE"
@@ -820,8 +954,10 @@ var getFunc = function(request, response){
         || isInt(request.query.index)
         || isSetTrue(request.query.dequeue);
     var getObject = function(){
-        return (request.method !== "HEAD"  ? getPromise : getEmptyPromise )
-        (key, order, index)
+
+        if(isInt(request.query.id)){
+            return (request.method !== "HEAD"  ? getPromiseById : getEmptyPromiseById )
+            (key, request.query.id, undefined)
             .then(function(result){
                 LOG("GET", result);
                 return q(result);
@@ -829,6 +965,19 @@ var getFunc = function(request, response){
                 LOG("GET FAILURE", e);
                 return q();
             })
+        }else{
+            return (request.method !== "HEAD"  ? getPromise : getEmptyPromise )
+            (key, order, index, undefined)
+            .then(function(result){
+                LOG("GET", result);
+                return q(result);
+            }).fail(function(e){
+                LOG("GET FAILURE", e);
+                return q();
+            })
+        }
+
+
     }
     var deleteObject = function(result){
         if(result) return removeOnePromise(result._id)
@@ -867,7 +1016,7 @@ var getFunc = function(request, response){
                 delete obj.type;
                 delete obj.value;
                 delete obj._id;
-                render(response, obj, result? 410 : 404);
+                render(response, obj, result? 204 : 404);
             })
     }
 }
@@ -885,9 +1034,7 @@ var putFunc = function(request, response){
         type : request.headers["content-type"]
     }
     if(OPTIONS.CAPTURE_HEADERS) obj.headers = request.headers;
-    var remove = request.method === "POST" ?
-        isSetFalse(request.query.enqueue) :
-        !isSetTrue(request.query.enqueue);
+    var remove = request.method === "PUT";
     var deletePreviousObjects = function(){
         return removeAllPromise(key)
             .then(function(deleted){
@@ -943,7 +1090,7 @@ var patchable = [
 "PEEK",
 "UNSAFE_GET",
 "CAPTURE_HEADERS",
-"HTTP_QUEUE",
+"QUEUE",
 "ALLOW_SET_DATE",
 "COLLECTION_NAME",
 "WEBSOCKETS"

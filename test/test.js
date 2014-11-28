@@ -107,7 +107,7 @@ describe('Websockets', function(){
             ws0.send("type number/even");
             setTimeout(
                 function(){
-                    assert.equal(ws0a.shift(),"type number/even");
+                    assert.equal(ws0a.shift(),"+type number/even");
                     done();
                 },
                 timeout * 0.75)
@@ -118,25 +118,13 @@ describe('Websockets', function(){
             ws1.send("type number/odd");
             setTimeout(
                 function(){
-                    assert.equal(ws1a.shift(),"type number/odd");
+                    assert.equal(ws1a.shift(),"+type number/odd");
                     done();
                 },
                 timeout * 0.75)
         })
     })
-    describe('Subscribe Attribute', function(){
-        it('set ws0 subscribe', function(done){
-            var timeout = SOCKET_RESPONSE_TIME;
-            this.timeout(timeout);
-            ws0.send("subscribe");
-            setTimeout(
-                function(){
-                    assert.equal(ws0a.shift(),"+subscribe");
-                    done();
-                },
-                timeout * 0.75)
-        })
-    })
+
     describe('Full Attribute', function(){
         it('set ws0 full', function(done){
             var timeout = SOCKET_RESPONSE_TIME;
@@ -145,19 +133,6 @@ describe('Websockets', function(){
             setTimeout(
                 function(){
                     assert.equal(ws0a.shift(),"+full");
-                    done();
-                },
-                timeout * 0.75)
-        })
-    })
-    describe('Public Attribute', function(){
-        it('set ws1 public', function(done){
-            var timeout = SOCKET_RESPONSE_TIME;
-            this.timeout(timeout);
-            ws1.send("public");
-            setTimeout(
-                function(){
-                    assert.equal(ws1a.shift(),"+public");
                     done();
                 },
                 timeout * 0.75)
@@ -213,101 +188,43 @@ describe('Websockets', function(){
             assert.equal(ws0a.length,0)
         })
     })
-    describe("Dequeue", function(){
-        it('ws1 should dequeue w/peek "0"', function(done){
-            var timeout = SOCKET_RESPONSE_TIME;
-            ws1.send("dequeue 0 true");
-            setTimeout(done, timeout * 0.75);
-        })
-        it('ws1 should dequeue "0"', function(done){
-            var timeout = SOCKET_RESPONSE_TIME;
-            ws1.send("dequeue");
-            setTimeout(done, timeout * 0.75);
-        })
-        it('ws1 should dequeue "2"', function(done){
-            var timeout = SOCKET_RESPONSE_TIME;
-            ws1.send("dequeue");
-            setTimeout(done, timeout * 0.75);
-        })
-        it('ws1 should dequeue w/peek "4"', function(done){
-            var timeout = SOCKET_RESPONSE_TIME;
-            ws1.send("dequeue 0 true");
-            setTimeout(done, timeout * 0.75);
-        })
-        it('ws1 should dequeue "4" and the orders shouldmatch up', function(done){
-            var timeout = SOCKET_RESPONSE_TIME;
-            ws1.send("dequeue");
-            setTimeout(function(){
-                var values = ws0a.map(function(value){return JSON.parse(value).value;});
-                assert.equal(values.length, 5);
-                assert.equal(values.shift(),"0");
-                assert.equal(values.shift(),"0");
-                assert.equal(values.shift(),"2");
-                assert.equal(values.shift(),"4");
-                assert.equal(values.shift(),"4");
-                assert.equal(ws1a.length, 5);
-                assert.equal(ws1a.shift(),"0");
-                assert.equal(ws1a.shift(),"0");
-                assert.equal(ws1a.shift(),"2");
-                assert.equal(ws1a.shift(),"4");
-                assert.equal(ws1a.shift(),"4");
-                done();
-            }, timeout * 0.75);
-        })
-        it('were the types set properly?', function(){
-            assert.equal(ws0a.length, 5);
-            ws0a = ws0a.forEach(function(value){
-                assert.equal(JSON.parse(value).type, "number/even");
-                });
-            ws0a = [];
-        })
+    describe("Send & Receive", function(){
+        describe('Receive Attribute', function(){
+            it('ws0 should receive what ws1 sends', function(done){
+                var timeout = SOCKET_RESPONSE_TIME*2;
+                this.timeout(timeout);
+                ws0.send("receive");
+                setTimeout(
+                    function(){
+                        assert.equal(ws0a.shift(),"+receive");
+                        ws1.send("send sent");
+                        setTimeout(
+                            function(){
+                                assert.equal(ws0a.shift(),"sent");
+                                done();
+                            },
+                            timeout * 0.75/2)
+                    },
+                    timeout * 0.75/2)
+                })
+            })
     })
 
-    describe("Pop", function(){
-        it('ws0 should pop w/peek "5"', function(done){
-            var timeout = SOCKET_RESPONSE_TIME;
-            ws0.send("pop 0 true");
-            setTimeout(done, timeout * 0.75);
-        })
-        it('ws0 should pop "5"', function(done){
-            var timeout = SOCKET_RESPONSE_TIME;
-            ws0.send("pop");
-            setTimeout(done, timeout * 0.75);
-        })
-        it('ws1 should pop "3"', function(done){
-            var timeout = SOCKET_RESPONSE_TIME;
-            ws0.send("pop");
-            setTimeout(done, timeout * 0.75);
-        })
-        it('ws1 should pop w/peek "1"', function(done){
-            var timeout = SOCKET_RESPONSE_TIME;
-            ws0.send("pop 0 true");
-            setTimeout(done, timeout * 0.75);
-        })
-        it('ws1 should pop "1"', function(done){
-            var timeout = SOCKET_RESPONSE_TIME;
-            ws0.send("pop");
-            setTimeout(done, timeout * 0.75);
-        })
-        it('does the order match up?', function(){
-            assert.equal(ws0a.length, 5);
-            ws0a = ws0a.map(function(value){return JSON.parse(value).value;});
-            assert.equal(ws0a.shift(),"5");
-            assert.equal(ws0a.shift(),"5");
-            assert.equal(ws0a.shift(),"3");
-            assert.equal(ws0a.shift(),"1");
-            assert.equal(ws0a.shift(),"1");
-        })
-        it('ws1a have recieved nothing', function(){
-            assert.equal(ws1a.length, 0);
-        })
-    })
+
 })
 
 describe('HTTP', function(){
-    it('GET should return 404 when there is nothing to get', function(done){
+    it('GET should return 204 after deleting everything', function(done){
         unirest
-        .get(SERVER_PORT_KEY)
+        .delete(SERVER_PORT_KEY)
+        .end(function(res){
+            assert.equal(res.status, 204);
+            done();
+        })
+    })
+    it('GET should return 404 when there is nothing to delete', function(done){
+        unirest
+        .delete(SERVER_PORT_KEY)
         .end(function(res){
             assert.equal(res.status, 404);
             done();
@@ -451,11 +368,11 @@ describe('HTTP + Sockets', function(){
             done();
         }, timeout * 0.75);
     })
-    it('410 if was something there', function(done){
+    it('204 if \'was\' something there', function(done){
         unirest
         .delete(SERVER_PORT_KEY)
         .end(function(res){
-            assert.equal(res.status, 410);
+            assert.equal(res.status, 204);
             done();
         })
     })
@@ -468,48 +385,3 @@ describe('HTTP + Sockets', function(){
         })
     })
 })
-
-
-
-
-
-
-
-
-/*
-
-get
-delete,remove
-
-post,
-delete,remove
-
-put,
-get,index=1
-
-delete
-post,post,
-delete, dequeue
-
-trace,
-patch,
-head
-*/
-
-
-//sequential asychronous tests
-//mocha 2000 timeout
-/*
-
-
-
-
-describe('HTTP + Websockets', function(){
-  describe('#indexOf()', function(){
-    it('should return -1 when the value is not present', function(){
-      assert.equal(-1, [1,2,3].indexOf(5));
-      assert.equal(-1, [1,2,3].indexOf(0));
-    })
-  })
-})
-*/

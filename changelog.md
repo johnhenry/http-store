@@ -1,7 +1,33 @@
 #HTTP Store
 
 ##Changelog
-The change version _does not_ conform to semantic versioning.
+The change version _does not_ conform to semantic versioning. This will change upon first release. Currently:
+- Major Version - Release
+- Minor Version - API changes
+- Patch Version - Patches
+
+###0.6.0
+- Modified - _HTTP_QUEUE_ setting is now __QUEUE__ and directly affects sockets
+- Modified - Switched order of __full__ and __queue__ parameters for websocket commands
+- Added - Several additional socket commands:
+    - __push__ - alias for _enqueue_
+    - __fetch__ - retrieve specific item by id
+    - __verbose__ - toggles between empty response and id for _listen_ channel
+- Added - commands for communicating without saving data
+    - __send__ - sends message to connected sockets without saving to database
+    - __receive__ - connect to channel that receives
+    - __broadcast__ - further messages sent on this channel will be broadcasted
+- Added socket commands that correspond to http methods
+    - __get__ - alies for either _pop_ or _dequeue_ depending upon _QUEUE_ setting
+    - __put__ - replace all items
+    - __post__ - alias for _enqueue_
+    - __delete__ - remove all items
+- Modified - __binary__ socket attribute now implies _queue_
+- Modified - __peek__ on sockets now controlled by _PEEK_ setting
+- Modified - changed __410__ responses to __204__ for HTTP DELETE
+- Modified - Removed __?enqueue__ parameter from HTTP PUT, POST
+- Modified - removed __public__ option from __pop/dequeue__ from sockets in favor of __send__
+- Added - HTTP GET, DELETE can now accept an __?id__ parameter
 
 ###0.5.8
 + Fixed - Chat Plus Demo Reconnection Issues
