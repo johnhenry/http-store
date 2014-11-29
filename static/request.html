@@ -56,13 +56,6 @@
                     Alt-Type : <input id="alt-type">
                 </label>
             </p>
-            <ul id="enqueue-box">
-                <li>
-                    <label>
-                        <input id="enqueue" type=checkbox> Enqueue?
-                    </label>
-                </li>
-            </ul>
             <ul id="dequeue-box">
                 <li>
                     <label title="Remove item">
@@ -149,9 +142,6 @@
                     || document.getElementById("type").value;
                 var body = document.getElementById("body").value;
                 var queryHash = {
-                    enqueue : document
-                                .getElementById("enqueue")
-                    .checked? "true" : (method === "PUT" || method ==="POST") ? "false" : "",
                     dequeue : document
                                 .getElementById("dequeue")
                     .checked? "true" : "",
@@ -202,24 +192,15 @@
                             .getElementById("index")
                             .checked = "";
                         document
-                            .getElementById("enqueue-box")
-                            .style.display = "block";
-                        document
                             .getElementById("body-box")
                             .style.display = "block";
                         document
                             .getElementById("dequeue-box")
                             .style.display = "none";
-                        document
-                            .getElementById("enqueue")
-                            .checked = method==="POST";
                     break;
                     case "PATCH" :
                         document
                             .getElementById("dequeue")
-                            .checked = undefined;
-                        document
-                            .getElementById("enqueue")
                             .checked = undefined;
                         document
                             .getElementById("pop")
@@ -234,9 +215,6 @@
                             .getElementById("body-box")
                             .style.display = "block";
                         document
-                            .getElementById("enqueue-box")
-                            .style.display = "none";
-                        document
                             .getElementById("dequeue-box")
                             .style.display = "none";
                         document
@@ -244,13 +222,7 @@
                     break;
                     default :
                         document
-                            .getElementById("enqueue")
-                            .checked = undefined;
-                        document
                             .getElementById("body-box")
-                            .style.display = "none";
-                        document
-                            .getElementById("enqueue-box")
                             .style.display = "none";
                         document
                             .getElementById("dequeue-box")

@@ -3,8 +3,11 @@
 ##Changelog
 The change version _does not_ conform to semantic versioning. This will change upon first release. Currently:
 - Major Version - Release
-- Minor Version - API changes
-- Patch Version - Patches
+- Minor Version - Breaking API changes
+- Patch Version - Patches and API Additions
+
+###0.6.1
+    Fixed - Setting an id for GET, POST will trigger a response
 
 ###0.6.0
 - Modified - _HTTP_QUEUE_ setting is now __QUEUE__ and directly affects sockets

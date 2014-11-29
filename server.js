@@ -99,7 +99,7 @@ var rawbody = require('raw-body');
 var jsonpatch = require('jsonpatch');
 var commanderSocket = require('./commander-socket')
 if(argv.version){
-    console.log("0.6.0");
+    console.log("0.6.1");
     process.exit();
 }
 var LOG = function(){};
@@ -952,12 +952,13 @@ var getFunc = function(request, response){
         || request.method === "HEAD"
         || isSetTrue(request.query.pop)
         || isInt(request.query.index)
+        || ObjectID.isValid(request.query.id)
         || isSetTrue(request.query.dequeue);
     var getObject = function(){
 
         if(isInt(request.query.id)){
             return (request.method !== "HEAD"  ? getPromiseById : getEmptyPromiseById )
-            (key, request.query.id, undefined)
+            (key, request.query.id)
             .then(function(result){
                 LOG("GET", result);
                 return q(result);
@@ -967,7 +968,7 @@ var getFunc = function(request, response){
             })
         }else{
             return (request.method !== "HEAD"  ? getPromise : getEmptyPromise )
-            (key, order, index, undefined)
+            (key, order, index)
             .then(function(result){
                 LOG("GET", result);
                 return q(result);

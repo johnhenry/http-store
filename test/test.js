@@ -209,8 +209,6 @@ describe('Websockets', function(){
                 })
             })
     })
-
-
 })
 
 describe('HTTP', function(){
